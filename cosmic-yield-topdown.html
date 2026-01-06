@@ -3158,72 +3158,51 @@ class GameScene extends Phaser.Scene {
         bg.strokeRoundedRect(-tileSize/2 + 2, -tileSize/2 + 2, tileSize - 4, tileSize - 4, 8);
         moduleContainer.add(bg);
 
-        // Planet sprite
-        if (data.module.sprite) {
-            const textureKey = `planet_${data.module.id}`;
-            console.log(`Creating module visual for ${data.module.name}, texture key: ${textureKey}, upgrades: ${data.upgrades}`);
+        // Planet sprite - ALWAYS use sprite images, never fallback to emoji
+        const textureKey = `planet_${data.module.id}`;
+        console.log(`Creating module visual for ${data.module.name}, texture key: ${textureKey}, upgrades: ${data.upgrades}`);
 
-            // Vérifier si la texture existe
-            if (this.textures.exists(textureKey)) {
-                console.log(`Texture ${textureKey} exists, creating sprite`);
-                const planetSprite = this.add.image(0, 0, textureKey);
-                planetSprite.setScale(0.10); // Réduit de 0.13 à 0.10 pour ~51px (ne dépasse pas la tuile de 80px)
-                moduleContainer.add(planetSprite);
+        // Create planet sprite
+        const planetSprite = this.add.image(0, 0, textureKey);
+        planetSprite.setScale(0.10); // Réduit de 0.13 à 0.10 pour ~51px (ne dépasse pas la tuile de 80px)
+        moduleContainer.add(planetSprite);
 
-                // Add upgrade level texture overlay (noise texture)
-                if (data.upgrades > 0) {
-                    const upgradeLevel = Math.min(data.upgrades - 1, 9); // Level 1 = noise00, Level 10 = noise09
-                    const noiseKey = `upgrade_level_${upgradeLevel}`;
-                    console.log(`Adding noise texture: ${noiseKey} for upgrade level ${data.upgrades}`);
+        // Add upgrade level texture overlay (noise texture)
+        if (data.upgrades > 0) {
+            const upgradeLevel = Math.min(data.upgrades - 1, 9); // Level 1 = noise00, Level 10 = noise09
+            const noiseKey = `upgrade_level_${upgradeLevel}`;
+            console.log(`Adding noise texture: ${noiseKey} for upgrade level ${data.upgrades}`);
 
-                    if (this.textures.exists(noiseKey)) {
-                        const noiseSprite = this.add.image(0, 0, noiseKey);
-                        noiseSprite.setScale(0.10);
-                        noiseSprite.setAlpha(0.6); // Augmenté de 0.4 à 0.6 pour plus de visibilité
-                        noiseSprite.setTint(data.module.color); // Tint with planet color
-                        noiseSprite.setBlendMode(Phaser.BlendModes.ADD); // Changé de OVERLAY à ADD pour plus de visibilité
-                        moduleContainer.add(noiseSprite);
+            if (this.textures.exists(noiseKey)) {
+                const noiseSprite = this.add.image(0, 0, noiseKey);
+                noiseSprite.setScale(0.10);
+                noiseSprite.setAlpha(0.6); // Augmenté de 0.4 à 0.6 pour plus de visibilité
+                noiseSprite.setTint(data.module.color); // Tint with planet color
+                noiseSprite.setBlendMode(Phaser.BlendModes.ADD); // Changé de OVERLAY à ADD pour plus de visibilité
+                moduleContainer.add(noiseSprite);
 
-                        // Subtle pulsing animation on noise texture
-                        this.tweens.add({
-                            targets: noiseSprite,
-                            alpha: { from: 0.4, to: 0.8 },
-                            duration: 3000,
-                            yoyo: true,
-                            repeat: -1,
-                            ease: 'Sine.easeInOut'
-                        });
-                    } else {
-                        console.error(`Noise texture ${noiseKey} not found!`);
-                    }
-                }
-
-                // Add subtle rotation animation to planet
+                // Subtle pulsing animation on noise texture
                 this.tweens.add({
-                    targets: planetSprite,
-                    angle: 360,
-                    duration: 30000, // Slow rotation (30 seconds per rotation)
+                    targets: noiseSprite,
+                    alpha: { from: 0.4, to: 0.8 },
+                    duration: 3000,
+                    yoyo: true,
                     repeat: -1,
-                    ease: 'Linear'
+                    ease: 'Sine.easeInOut'
                 });
             } else {
-                console.error(`Texture ${textureKey} not found! Falling back to emoji`);
-                // Fallback: use emoji icon
-                const icon = this.add.text(0, -8, data.module.icon, {
-                    fontSize: '48px',
-                    align: 'center'
-                }).setOrigin(0.5);
-                moduleContainer.add(icon);
+                console.error(`Noise texture ${noiseKey} not found!`);
             }
-        } else {
-            console.log(`No sprite defined for module ${data.module.name}, using emoji`);
-            // Fallback: use emoji icon
-            const icon = this.add.text(0, -8, data.module.icon, {
-                fontSize: '48px',
-                align: 'center'
-            }).setOrigin(0.5);
-            moduleContainer.add(icon);
         }
+
+        // Add subtle rotation animation to planet
+        this.tweens.add({
+            targets: planetSprite,
+            angle: 360,
+            duration: 30000, // Slow rotation (30 seconds per rotation)
+            repeat: -1,
+            ease: 'Linear'
+        });
 
         // Level indicator
         if (data.upgrades > 0) {
