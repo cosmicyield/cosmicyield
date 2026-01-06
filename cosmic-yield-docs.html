@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Yield - Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-bg: #0a0a1a;
+            --color-bg-secondary: #1a0a2e;
+            --color-primary: #00f0ff;
+            --color-secondary: #ff00aa;
+            --color-energy: #ffdd00;
+            --color-plasma: #aa00ff;
+            --color-success: #00ff88;
+            --color-panel: rgba(20, 20, 50, 0.95);
+            --color-panel-border: rgba(0, 240, 255, 0.3);
+            --color-sidebar: rgba(15, 15, 35, 0.98);
+            --font-display: 'Orbitron', sans-serif;
+            --font-body: 'Exo 2', sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
+            font-family: var(--font-body);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 170, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Stars Animation */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Fixed Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: var(--color-sidebar);
+            border-bottom: 1px solid var(--color-panel-border);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .logo {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+            letter-spacing: 2px;
+        }
+
+        .search-container {
+            flex: 1;
+            max-width: 400px;
+            margin: 0 2rem;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: white;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        .header-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .header-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .header-link:hover {
+            background: rgba(0, 240, 255, 0.2);
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            width: 280px;
+            height: calc(100vh - 70px);
+            background: var(--color-sidebar);
+            border-right: 1px solid var(--color-panel-border);
+            overflow-y: auto;
+            z-index: 999;
+            transition: transform 0.3s ease;
+            padding: 2rem 0;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: 3px;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+
+        .nav-section-title:hover {
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        .nav-section-icon {
+            font-size: 1.2rem;
+        }
+
+        .nav-section-toggle {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-section.collapsed .nav-section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .nav-items {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .nav-section.collapsed .nav-items {
+            max-height: 0;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.6rem 1.5rem 0.6rem 3rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: white;
+            background: rgba(0, 240, 255, 0.05);
+            border-left-color: var(--color-primary);
+        }
+
+        .nav-link.active {
+            color: var(--color-primary);
+            background: rgba(0, 240, 255, 0.1);
+            border-left-color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Main Content */
+        .main-wrapper {
+            display: flex;
+            margin-top: 70px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 3rem;
+            max-width: 900px;
+        }
+
+        .toc-sidebar {
+            position: fixed;
+            top: 70px;
+            right: 0;
+            width: 250px;
+            height: calc(100vh - 70px);
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+        }
+
+        .toc-title {
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .toc-link {
+            display: block;
+            padding: 0.4rem 0;
+            padding-left: 1rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-left: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .toc-link:hover {
+            color: var(--color-primary);
+            border-left-color: var(--color-primary);
+        }
+
+        .toc-link.active {
+            color: var(--color-primary);
+            border-left-color: var(--color-primary);
+        }
+
+        /* Content Styles */
+        .page-title {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+            scroll-margin-top: 90px;
+        }
+
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .content-section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 90px;
+        }
+
+        .section-heading {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+            scroll-margin-top: 100px;
+        }
+
+        .subsection-heading {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            scroll-margin-top: 100px;
+        }
+
+        .content-text {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 1.5rem;
+        }
+
+        .info-box {
+            background: rgba(0, 240, 255, 0.1);
+            border-left: 4px solid var(--color-primary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .info-box-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .warning-box {
+            background: rgba(255, 170, 0, 0.1);
+            border-left: 4px solid #ffaa00;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+
+        .warning-box-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffaa00;
+            margin-bottom: 0.5rem;
+        }
+
+        .planet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .planet-card {
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .planet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.2);
+        }
+
+        .planet-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .planet-icon {
+            font-size: 2.5rem;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .planet-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.3));
+        }
+
+        .planet-info h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .planet-level {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .planet-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .planet-stat {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.75rem;
+            border-radius: 8px;
+        }
+
+        .planet-stat-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .planet-stat-value {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--color-energy);
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 1.5rem 0;
+        }
+
+        .feature-list li {
+            padding: 0.75rem 0;
+            padding-left: 2rem;
+            position: relative;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .feature-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--color-primary);
+            font-weight: 700;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border-radius: 10px;
+            color: white;
+            text-decoration: none;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4);
+            margin-top: 1rem;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 240, 255, 0.6);
+        }
+
+        .faq-item {
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .faq-question {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .faq-answer {
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 1200px) {
+            .toc-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 2rem 1.5rem;
+            }
+
+            .search-container {
+                display: none;
+            }
+
+            .header-links {
+                gap: 0.5rem;
+            }
+
+            .header-link span {
+                display: none;
+            }
+
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .section-heading {
+                font-size: 1.5rem;
+            }
+
+            .planet-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 998;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="starfield"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <a href="index.html" class="logo">COSMIC YIELD</a>
+        </div>
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" placeholder="Search documentation..." id="searchInput">
+        </div>
+        <div class="header-links">
+            <a href="index.html" class="header-link">
+                <span>🌐</span>
+                <span>Website</span>
+            </a>
+            <a href="cosmic-yield-topdown.html" class="header-link">
+                <span>🎮</span>
+                <span>Demo Mode</span>
+            </a>
+            <a href="#" class="header-link" style="background: rgba(255, 107, 0, 0.2); border-color: rgba(255, 107, 0, 0.5);" onclick="alert('Coming soon! Connect your wallet to play on BSC.'); return false;">
+                <span>🚀</span>
+                <span>Play On-Chain</span>
+            </a>
+            <a href="cosmic-yield-calculator.html" class="header-link">
+                <span>📊</span>
+                <span>Calculator</span>
+            </a>
+        </div>
+    </header>
+
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <nav>
+            <div class="nav-section">
+                <div class="nav-section-title" onclick="toggleSection(this)">
+                    <span class="nav-section-icon">🚀</span>
+                    <span>Cosmic Yield</span>
+                    <span class="nav-section-toggle">▼</span>
+                </div>
+                <div class="nav-items">
+                    <a href="#introduction" class="nav-link">Introduction</a>
+                    <a href="#game-mechanics" class="nav-link">Game Mechanics</a>
+                    <a href="#getting-started" class="nav-link">Getting Started</a>
+                    <a href="#faq" class="nav-link">FAQ</a>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title" onclick="toggleSection(this)">
+                    <span class="nav-section-icon">💰</span>
+                    <span>Earn with Cosmic Yield</span>
+                    <span class="nav-section-toggle">▼</span>
+                </div>
+                <div class="nav-items">
+                    <a href="#roi-calculator" class="nav-link">ROI Calculator</a>
+                    <a href="#referral-program" class="nav-link">Referral Program</a>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title" onclick="toggleSection(this)">
+                    <span class="nav-section-icon">💎</span>
+                    <span>Economy</span>
+                    <span class="nav-section-toggle">▼</span>
+                </div>
+                <div class="nav-items">
+                    <a href="#tokenomics" class="nav-link">Tokenomics</a>
+                    <a href="#planet-types" class="nav-link">Planet Types & Production</a>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title" onclick="toggleSection(this)">
+                    <span class="nav-section-icon">ℹ️</span>
+                    <span>Info</span>
+                    <span class="nav-section-toggle">▼</span>
+                </div>
+                <div class="nav-items">
+                    <a href="#official-links" class="nav-link">Official Links</a>
+                    <a href="#roadmap" class="nav-link">Roadmap</a>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title" onclick="toggleSection(this)">
+                    <span class="nav-section-icon">🔒</span>
+                    <span>Security</span>
+                    <span class="nav-section-toggle">▼</span>
+                </div>
+                <div class="nav-items">
+                    <a href="#smart-contract" class="nav-link">Smart Contract</a>
+                    <a href="#audit" class="nav-link">Audit</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            Powered by Claude Code
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <main class="main-content">
+            <!-- Introduction Section -->
+            <div id="introduction" class="content-section">
+                <h1 class="page-title">Welcome to Cosmic Yield</h1>
+                <p class="page-subtitle">Build your space mining empire. Earn real rewards. Conquer the cosmos.</p>
+
+                <h2 class="section-heading">What is Cosmic Yield?</h2>
+                <p class="content-text">
+                    Cosmic Yield is an innovative blockchain-based space mining investment game that combines idle gameplay mechanics with real financial rewards. Build and upgrade mining facilities across 8 different planet types, manage dual resources (Energy and Plasma), and watch your investment grow through strategic optimization.
+                </p>
+
+                <p class="content-text">
+                    Unlike traditional games, Cosmic Yield offers a practice mode where you can learn the mechanics without any wallet connection, making it perfect for beginners. When you're ready, switch to on-chain mode to earn real USDT rewards.
+                </p>
+
+                <div class="info-box">
+                    <div class="info-box-title">Key Highlights</div>
+                    <ul class="feature-list">
+                        <li>360 tiles to build your cosmic empire</li>
+                        <li>8 unique planet types with different production rates</li>
+                        <li>Dual resource economy: Energy for building, Plasma for profit</li>
+                        <li>Daily battle system for bonus rewards</li>
+                        <li>Smart AI-powered reinvestment algorithm</li>
+                        <li>Convert Plasma to USDT anytime</li>
+                    </ul>
+                </div>
+
+                <h2 class="section-heading" id="game-mechanics">Game Mechanics</h2>
+
+                <h3 class="subsection-heading">Planets & Buildings</h3>
+                <p class="content-text">
+                    Your empire consists of mining planets placed on a 360-tile grid. Each planet produces Energy and Plasma every hour. Planets range from basic Mercury facilities to advanced Neptune stations, with higher-level planets costing more but producing significantly better yields.
+                </p>
+
+                <h3 class="subsection-heading">Dual Resources System</h3>
+                <p class="content-text">
+                    <strong style="color: var(--color-energy);">Energy (⚡)</strong> - Used for building new planets and upgrading existing ones. Earned through daily production and battle rewards. Cannot be withdrawn but can be swapped to Plasma at a 2:1 ratio.
+                </p>
+                <p class="content-text">
+                    <strong style="color: var(--color-plasma);">Plasma (💎)</strong> - Your profit currency that can be converted to USDT. Earned through daily production from your planets. Can be swapped to Energy at a 1:2 ratio for faster expansion.
+                </p>
+
+                <h3 class="subsection-heading">Upgrades</h3>
+                <p class="content-text">
+                    Each planet can be upgraded up to 9 levels (Level 1 through Level 10). Each upgrade costs 25% of the planet's base cost and increases production by 25% of the base rate. Upgrades are a cost-effective way to boost production without using more tiles.
+                </p>
+
+                <div class="info-box">
+                    <div class="info-box-title">Upgrade Example</div>
+                    <p class="content-text" style="margin: 0;">
+                        A Mercury planet costs 10,000 Energy and produces 4/hour. Upgrading to Level 2 costs 2,500 Energy and adds +1/hour production. By Level 10, the same planet produces 13/hour.
+                    </p>
+                </div>
+
+                <h3 class="subsection-heading">Swap System</h3>
+                <p class="content-text">
+                    Strategic resource swapping is key to optimal growth. Convert Plasma to Energy at a 1:2 rate when you need to expand quickly. The smart reinvestment algorithm automatically calculates the optimal swap amounts to minimize your time to ROI.
+                </p>
+
+                <h3 class="subsection-heading">Battle System</h3>
+                <p class="content-text">
+                    Engage in daily battles to earn bonus Energy. Battle rewards are calculated based on your total production rate (perHour × 12.8), meaning the more you produce, the bigger your daily battle bonus. This creates a powerful compound growth effect.
+                </p>
+
+                <h2 class="section-heading" id="getting-started">Getting Started</h2>
+
+                <h3 class="subsection-heading">Practice Mode</h3>
+                <p class="content-text">
+                    Start your journey in Practice Mode - no wallet connection required! This mode lets you:
+                </p>
+                <ul class="feature-list">
+                    <li>Learn game mechanics risk-free</li>
+                    <li>Experiment with different strategies</li>
+                    <li>Understand the upgrade system</li>
+                    <li>Test the ROI calculator</li>
+                    <li>Master resource management</li>
+                </ul>
+
+                <p class="content-text">
+                    Your progress is saved locally, so you can practice as long as you need before committing real funds.
+                </p>
+
+                <h3 class="subsection-heading">On-Chain Mode (Coming Soon)</h3>
+                <p class="content-text">
+                    Once you're comfortable with the mechanics, connect your BSC wallet to play with real investments. Your Plasma earnings can be converted to USDT and withdrawn at any time. The game runs 24/7, generating passive income even while you're away.
+                </p>
+
+                <div class="warning-box">
+                    <div class="warning-box-title">Important: Investment Disclaimer</div>
+                    <p class="content-text" style="margin: 0;">
+                        Cosmic Yield is an investment game where you can earn real returns, but like all investments, there are risks. Only invest what you can afford to lose. Use the ROI calculator to understand potential returns before investing.
+                    </p>
+                </div>
+
+                <a href="cosmic-yield-topdown.html" class="cta-button">🎮 Try Practice Mode</a>
+            </div>
+
+            <!-- FAQ Section -->
+            <div id="faq" class="content-section">
+                <h2 class="section-heading">Frequently Asked Questions</h2>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I start earning?</div>
+                    <div class="faq-answer">
+                        First, try Practice Mode to learn the game mechanics. When ready, connect your wallet in On-Chain mode, invest USDT to get Energy, build planets, and start earning Plasma. Convert Plasma to USDT anytime to realize your profits.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What's the minimum investment?</div>
+                    <div class="faq-answer">
+                        The minimum investment is 10 USDT, which gives you 10,000 Energy - enough to start building your first planets.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How long until I reach ROI?</div>
+                    <div class="faq-answer">
+                        ROI timing depends on your investment size and reinvestment strategy. Use the ROI Calculator to simulate different scenarios. Generally, with optimal smart reinvestment, most players reach ROI within 30-60 days.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I withdraw my Plasma anytime?</div>
+                    <div class="faq-answer">
+                        Yes! Convert your Plasma to USDT and withdraw at any time. There's no lock-up period. However, keeping your earnings invested and using smart reinvestment will maximize your long-term returns.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What's the difference between Energy and Plasma?</div>
+                    <div class="faq-answer">
+                        Energy is your building currency - use it to construct and upgrade planets. Plasma is your profit currency that converts to USDT. Both are produced hourly by your planets at equal rates.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do battles work?</div>
+                    <div class="faq-answer">
+                        Once per day, you can engage in a battle that rewards you with bonus Energy (approximately 12.8× your hourly production rate). Higher production means bigger battle rewards, creating a compound growth effect.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">What blockchain is Cosmic Yield on?</div>
+                    <div class="faq-answer">
+                        Cosmic Yield will launch on Binance Smart Chain (BSC), offering fast transactions and low fees. Practice Mode works offline without any blockchain interaction.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROI Calculator Section -->
+            <div id="roi-calculator" class="content-section">
+                <h2 class="section-heading">ROI Calculator</h2>
+                <p class="content-text">
+                    Our advanced ROI calculator simulates your investment growth over time using the same algorithms as the game. It considers:
+                </p>
+                <ul class="feature-list">
+                    <li>Daily Energy and Plasma production from your planets</li>
+                    <li>Daily battle rewards based on your production rate</li>
+                    <li>Smart reinvestment strategy that automatically swaps Plasma to Energy when beneficial</li>
+                    <li>Optimal building and upgrade paths to maximize efficiency</li>
+                </ul>
+
+                <p class="content-text">
+                    The calculator shows you exactly how many days it takes to reach ROI (recover your initial investment) and how many days to reach 2× returns. It also provides a detailed action log showing every build, upgrade, battle, and swap decision.
+                </p>
+
+                <div class="info-box">
+                    <div class="info-box-title">How It Works</div>
+                    <p class="content-text" style="margin: 0;">
+                        Enter your desired USDT investment amount (10-100,000), and the calculator simulates up to 400 days of gameplay. It uses efficiency-based algorithms to determine the optimal planet types to build and the best times to swap Plasma for faster expansion. The results show your final Plasma balance, daily production rates, total tiles used, and complete timeline of actions.
+                    </p>
+                </div>
+
+                <a href="cosmic-yield-calculator.html" class="cta-button">📊 Open Calculator</a>
+            </div>
+
+            <!-- Referral Program Section -->
+            <div id="referral-program" class="content-section">
+                <h2 class="section-heading">Referral Program</h2>
+                <p class="content-text">
+                    The referral program is coming soon! Share Cosmic Yield with friends and earn bonus rewards when they start playing. More details will be announced closer to the on-chain launch.
+                </p>
+            </div>
+
+            <!-- Tokenomics Section -->
+            <div id="tokenomics" class="content-section">
+                <h2 class="section-heading">Tokenomics</h2>
+
+                <h3 class="subsection-heading">Economy Overview</h3>
+                <p class="content-text">
+                    Cosmic Yield operates on a dual-token economy designed for sustainability and growth. Energy circulates within the game ecosystem for building and upgrading, while Plasma represents real value that can be extracted as USDT.
+                </p>
+
+                <h3 class="subsection-heading">Energy Supply</h3>
+                <p class="content-text">
+                    Energy enters the system through USDT deposits (1 USDT = 1,000 Energy) and battle rewards. It exits through building costs and upgrade costs. The swap system allows Energy to be created from Plasma at a 1:2 ratio, enabling strategic liquidity.
+                </p>
+
+                <h3 class="subsection-heading">Plasma Economics</h3>
+                <p class="content-text">
+                    Plasma is generated through hourly production from planets. Players can convert Plasma to USDT (1,000 Plasma = 1 USDT) or swap to Energy for expansion. The system is designed so early investors who use smart reinvestment can achieve strong ROI while maintaining sustainability.
+                </p>
+
+                <h3 class="subsection-heading">Swap Rates</h3>
+                <p class="content-text">
+                    The 1:2 swap ratio (1 Plasma → 2 Energy) creates interesting strategic choices. Converting Plasma to Energy for expansion can accelerate growth but delays profit-taking. The ROI calculator helps determine the optimal balance.
+                </p>
+
+                <div class="info-box">
+                    <div class="info-box-title">Sustainability Model</div>
+                    <p class="content-text" style="margin: 0;">
+                        The game economy is designed for long-term sustainability. New player investments fund withdrawals of existing players, similar to how early investors in growing platforms benefit from network growth. The smart reinvestment system and efficiency-based building encourage healthy ecosystem growth.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Planet Types Section -->
+            <div id="planet-types" class="content-section">
+                <h2 class="section-heading">Planet Types & Production Rates</h2>
+                <p class="content-text">
+                    There are 8 planet types, each with different costs and production rates. Higher-level planets are more efficient (better production per Energy spent) but require larger upfront investments.
+                </p>
+
+                <div class="planet-grid">
+                    <div class="planet-card">
+                        <div class="planet-header">
+                            <div class="planet-icon"><img src="kenney_planets/Planets/planet01.png" alt="Mercury"></div>
+                            <div class="planet-info">
+                                <h3>Mercury</h3>
+                                <div class="planet-level">Level 1 Planet</div>
+                            </div>
+                        </div>
+                        <p class="content-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            Rocky volcanic planet
+                        </p>
+                        <div class="planet-stats">
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Cost</div>
+                                <div class="planet-stat-value">10,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Production</div>
+                                <div class="planet-stat-value">4/hr</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Cost</div>
+                                <div class="planet-stat-value">2,500</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Boost</div>
+                                <div class="planet-stat-value">+1/hr</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="planet-card">
+                        <div class="planet-header">
+                            <div class="planet-icon"><img src="kenney_planets/Planets/planet02.png" alt="Venus"></div>
+                            <div class="planet-info">
+                                <h3>Venus</h3>
+                                <div class="planet-level">Level 2 Planet</div>
+                            </div>
+                        </div>
+                        <p class="content-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            Toxic atmosphere world
+                        </p>
+                        <div class="planet-stats">
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Cost</div>
+                                <div class="planet-stat-value">28,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Production</div>
+                                <div class="planet-stat-value">12/hr</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Cost</div>
+                                <div class="planet-stat-value">7,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Boost</div>
+                                <div class="planet-stat-value">+3/hr</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="planet-card">
+                        <div class="planet-header">
+                            <div class="planet-icon"><img src="kenney_planets/Planets/planet03.png" alt="Earth"></div>
+                            <div class="planet-info">
+                                <h3>Earth</h3>
+                                <div class="planet-level">Level 3 Planet</div>
+                            </div>
+                        </div>
+                        <p class="content-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            Blue water planet
+                        </p>
+                        <div class="planet-stats">
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Cost</div>
+                                <div class="planet-stat-value">54,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Production</div>
+                                <div class="planet-stat-value">24/hr</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Cost</div>
+                                <div class="planet-stat-value">13,500</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Boost</div>
+                                <div class="planet-stat-value">+6/hr</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="planet-card">
+                        <div class="planet-header">
+                            <div class="planet-icon"><img src="kenney_planets/Planets/planet04.png" alt="Mars"></div>
+                            <div class="planet-info">
+                                <h3>Mars</h3>
+                                <div class="planet-level">Level 4 Planet</div>
+                            </div>
+                        </div>
+                        <p class="content-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            Red desert world
+                        </p>
+                        <div class="planet-stats">
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Cost</div>
+                                <div class="planet-stat-value">100,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Production</div>
+                                <div class="planet-stat-value">48/hr</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Cost</div>
+                                <div class="planet-stat-value">25,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Boost</div>
+                                <div class="planet-stat-value">+12/hr</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="planet-card">
+                        <div class="planet-header">
+                            <div class="planet-icon"><img src="kenney_planets/Planets/planet05.png" alt="Jupiter"></div>
+                            <div class="planet-info">
+                                <h3>Jupiter</h3>
+                                <div class="planet-level">Level 5 Planet</div>
+                            </div>
+                        </div>
+                        <p class="content-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            Giant gas planet
+                        </p>
+                        <div class="planet-stats">
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Cost</div>
+                                <div class="planet-stat-value">250,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Production</div>
+                                <div class="planet-stat-value">124/hr</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Cost</div>
+                                <div class="planet-stat-value">62,500</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Boost</div>
+                                <div class="planet-stat-value">+31/hr</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="planet-card">
+                        <div class="planet-header">
+                            <div class="planet-icon"><img src="kenney_planets/Planets/planet06.png" alt="Saturn"></div>
+                            <div class="planet-info">
+                                <h3>Saturn</h3>
+                                <div class="planet-level">Level 6 Planet</div>
+                            </div>
+                        </div>
+                        <p class="content-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            Ringed gas giant
+                        </p>
+                        <div class="planet-stats">
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Cost</div>
+                                <div class="planet-stat-value">500,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Production</div>
+                                <div class="planet-stat-value">260/hr</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Cost</div>
+                                <div class="planet-stat-value">125,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Boost</div>
+                                <div class="planet-stat-value">+65/hr</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="planet-card">
+                        <div class="planet-header">
+                            <div class="planet-icon"><img src="kenney_planets/Planets/planet07.png" alt="Uranus"></div>
+                            <div class="planet-info">
+                                <h3>Uranus</h3>
+                                <div class="planet-level">Level 7 Planet</div>
+                            </div>
+                        </div>
+                        <p class="content-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            Ice giant world
+                        </p>
+                        <div class="planet-stats">
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Cost</div>
+                                <div class="planet-stat-value">1,000,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Production</div>
+                                <div class="planet-stat-value">550/hr</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Cost</div>
+                                <div class="planet-stat-value">250,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Boost</div>
+                                <div class="planet-stat-value">+137/hr</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="planet-card">
+                        <div class="planet-header">
+                            <div class="planet-icon"><img src="kenney_planets/Planets/planet08.png" alt="Neptune"></div>
+                            <div class="planet-info">
+                                <h3>Neptune</h3>
+                                <div class="planet-level">Level 8 Planet</div>
+                            </div>
+                        </div>
+                        <p class="content-text" style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                            Deep blue ice giant
+                        </p>
+                        <div class="planet-stats">
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Cost</div>
+                                <div class="planet-stat-value">2,000,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Production</div>
+                                <div class="planet-stat-value">1,150/hr</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Cost</div>
+                                <div class="planet-stat-value">500,000</div>
+                            </div>
+                            <div class="planet-stat">
+                                <div class="planet-stat-label">Upgrade Boost</div>
+                                <div class="planet-stat-value">+287/hr</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-box-title">Efficiency Strategy</div>
+                    <p class="content-text" style="margin: 0;">
+                        Higher-level planets have better production-to-cost ratios (efficiency). The smart building algorithm prioritizes efficiency, building the most efficient planet you can afford. This maximizes your production rate and accelerates ROI.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Official Links Section -->
+            <div id="official-links" class="content-section">
+                <h2 class="section-heading">Official Links</h2>
+                <ul class="feature-list">
+                    <li><a href="index.html" style="color: var(--color-primary);">Website Homepage</a></li>
+                    <li><a href="cosmic-yield-topdown.html" style="color: var(--color-primary);">Play Game (Practice Mode)</a></li>
+                    <li><a href="cosmic-yield-calculator.html" style="color: var(--color-primary);">ROI Calculator</a></li>
+                    <li><a href="cosmic-yield-docs.html" style="color: var(--color-primary);">Documentation (You are here)</a></li>
+                </ul>
+            </div>
+
+            <!-- Roadmap Section -->
+            <div id="roadmap" class="content-section">
+                <h2 class="section-heading">Roadmap</h2>
+
+                <h3 class="subsection-heading">✅ Phase 1: Practice Mode (LIVE)</h3>
+                <ul class="feature-list">
+                    <li>Full game mechanics available offline</li>
+                    <li>8 planet types with upgrade system</li>
+                    <li>Battle and swap systems</li>
+                    <li>ROI calculator</li>
+                    <li>Complete documentation</li>
+                </ul>
+
+                <h3 class="subsection-heading">🚀 Phase 2: On-Chain Launch (Coming Soon)</h3>
+                <ul class="feature-list">
+                    <li>BSC smart contract deployment</li>
+                    <li>USDT deposits and withdrawals</li>
+                    <li>Real earnings in Plasma → USDT</li>
+                    <li>Smart contract audit</li>
+                    <li>Anti-whale mechanisms</li>
+                </ul>
+
+                <h3 class="subsection-heading">🔮 Phase 3: Community & Growth</h3>
+                <ul class="feature-list">
+                    <li>Referral rewards program</li>
+                    <li>Community governance</li>
+                    <li>Additional game modes</li>
+                    <li>Mobile app</li>
+                    <li>Leaderboards and achievements</li>
+                </ul>
+            </div>
+
+            <!-- Security Section -->
+            <div id="smart-contract" class="content-section">
+                <h2 class="section-heading">Smart Contract</h2>
+                <p class="content-text">
+                    The Cosmic Yield smart contract will be deployed on Binance Smart Chain before the on-chain launch. Contract address and verification details will be published here. The contract will handle:
+                </p>
+                <ul class="feature-list">
+                    <li>USDT deposits (buy Energy)</li>
+                    <li>Planet building and upgrade logic</li>
+                    <li>Resource production and claiming</li>
+                    <li>Plasma to USDT withdrawals</li>
+                    <li>Battle rewards distribution</li>
+                </ul>
+
+                <div class="warning-box">
+                    <div class="warning-box-title">Coming Soon</div>
+                    <p class="content-text" style="margin: 0;">
+                        Smart contract details will be announced before the on-chain launch. Always verify the official contract address through our verified channels.
+                    </p>
+                </div>
+            </div>
+
+            <div id="audit" class="content-section">
+                <h2 class="section-heading">Security Audit</h2>
+                <p class="content-text">
+                    Before launching on-chain mode, the Cosmic Yield smart contract will undergo a professional security audit by a reputable blockchain security firm. Audit results will be published here for full transparency.
+                </p>
+
+                <div class="info-box">
+                    <div class="info-box-title">Security First</div>
+                    <p class="content-text" style="margin: 0;">
+                        We prioritize the security of player funds. The audit will verify that the contract logic is sound, funds are secure, and there are no vulnerabilities or backdoors. Results will be made public before launch.
+                    </p>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Table of Contents (Right Sidebar) -->
+        <aside class="toc-sidebar">
+            <div class="toc-title">On This Page</div>
+            <a href="#introduction" class="toc-link">Introduction</a>
+            <a href="#game-mechanics" class="toc-link">Game Mechanics</a>
+            <a href="#getting-started" class="toc-link">Getting Started</a>
+            <a href="#faq" class="toc-link">FAQ</a>
+            <a href="#roi-calculator" class="toc-link">ROI Calculator</a>
+            <a href="#referral-program" class="toc-link">Referral Program</a>
+            <a href="#tokenomics" class="toc-link">Tokenomics</a>
+            <a href="#planet-types" class="toc-link">Planet Types</a>
+            <a href="#official-links" class="toc-link">Official Links</a>
+            <a href="#roadmap" class="toc-link">Roadmap</a>
+            <a href="#smart-contract" class="toc-link">Smart Contract</a>
+            <a href="#audit" class="toc-link">Audit</a>
+        </aside>
+    </div>
+
+    <script>
+        // Starfield Animation
+        const starfield = document.getElementById('starfield');
+        const starCount = 150;
+
+        function createStar() {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * window.innerWidth + 'px';
+            star.style.top = Math.random() * window.innerHeight + 'px';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starfield.appendChild(star);
+        }
+
+        for (let i = 0; i < starCount; i++) {
+            createStar();
+        }
+
+        // Sidebar Navigation
+        function toggleSection(element) {
+            const section = element.parentElement;
+            section.classList.toggle('collapsed');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        // Active Link Highlighting
+        const navLinks = document.querySelectorAll('.nav-link, .toc-link');
+        const sections = document.querySelectorAll('.content-section, .section-heading');
+
+        function highlightActiveSection() {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (window.pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', highlightActiveSection);
+        window.addEventListener('load', highlightActiveSection);
+
+        // Search Functionality (basic client-side)
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                if (query.length < 2) return;
+
+                // Simple search - highlight matching nav items
+                const allNavLinks = document.querySelectorAll('.nav-link');
+                allNavLinks.forEach(link => {
+                    const text = link.textContent.toLowerCase();
+                    if (text.includes(query)) {
+                        link.style.background = 'rgba(0, 240, 255, 0.2)';
+                    } else {
+                        link.style.background = '';
+                    }
+                });
+            });
+        }
+
+        // Smooth scroll to top on logo click
+        document.querySelector('.logo').addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // Close sidebar when clicking a link on mobile
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

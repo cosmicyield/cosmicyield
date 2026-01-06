@@ -1,0 +1,23 @@
+# Development files
+.claude/
+*.js
+!sounds/*.js
+
+# Temporary files
+nul
+
+# Documentation files (keep only essential ones)
+ALGORITHM_EXPLANATION.md
+COMPREHENSIVE_REPORT.md
+INDEX.md
+PLANET_EARNINGS_ANALYSIS.txt
+STRATEGY_RESULTS_SUMMARY.md
+DEFINITIVE_ANSWER.js
+FINAL_RESULTS.js
+WINNING_STRATEGY.js
+advanced_strategies.js
+compare_all_strategies.js
+final_breakthrough.js
+strategy_optimizer.js
+tetherking_*.js
+ultimate_optimizer.js

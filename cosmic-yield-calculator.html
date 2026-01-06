@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Yield - ROI Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-bg: #0a0a1a;
+            --color-primary: #00f0ff;
+            --color-secondary: #ff00aa;
+            --color-energy: #ffdd00;
+            --color-plasma: #aa00ff;
+            --color-success: #00ff88;
+            --color-danger: #ff4444;
+            --color-panel: rgba(20, 20, 50, 0.95);
+            --color-panel-border: rgba(0, 240, 255, 0.3);
+            --font-display: 'Orbitron', sans-serif;
+            --font-body: 'Exo 2', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 100%);
+            font-family: var(--font-body);
+            color: white;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 170, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Stars Animation - Hyperspace Style */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% {
+                opacity: 0;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.5);
+            }
+        }
+
+        @keyframes shootingStar {
+            from {
+                transform: translate(0, 0) scale(1);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            to {
+                transform: translate(var(--tx), var(--ty)) scale(3);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .title {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+        }
+
+        .card {
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            color: var(--color-primary);
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 1rem 5.5rem 1rem 1.5rem;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(0, 240, 255, 0.3);
+            border-radius: 12px;
+            color: white;
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        /* Hide number input spinners */
+        .input-field::-webkit-outer-spin-button,
+        .input-field::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .input-field[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .input-suffix {
+            position: absolute;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-energy);
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1rem;
+            pointer-events: none;
+        }
+
+        .btn-calculate {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn-calculate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 240, 255, 0.6);
+        }
+
+        .btn-calculate:active {
+            transform: translateY(0);
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .days-header {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .days-item {
+            text-align: center;
+        }
+
+        .days-count {
+            font-family: var(--font-display);
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--color-energy);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .days-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: lowercase;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: capitalize;
+        }
+
+        .action-log {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.75rem;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-day {
+            font-family: var(--font-display);
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.5);
+            min-width: 50px;
+            flex-shrink: 0;
+        }
+
+        .log-type {
+            min-width: 60px;
+            flex-shrink: 0;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.7rem;
+        }
+
+        .log-details {
+            flex: 1;
+            color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .log-balance {
+            display: flex;
+            gap: 0.75rem;
+            margin-left: auto;
+            font-family: var(--font-display);
+            font-size: 0.7rem;
+        }
+
+        .log-balance .plasma {
+            color: var(--color-plasma);
+        }
+
+        .log-balance .gold {
+            color: var(--color-energy);
+        }
+
+        .action-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .action-log::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        .action-log::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: 4px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--color-danger);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-family: var(--font-display);
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem 1rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .footer p {
+            margin-bottom: 1rem;
+        }
+
+        .footer a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: var(--color-secondary);
+        }
+
+        @media (max-width: 640px) {
+            .title {
+                font-size: 1.8rem;
+            }
+
+            .metric-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .metric-value {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="starfield"></div>
+    <div id="toast" class="toast"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Cosmic Yield Calculator</h1>
+            <p class="subtitle">Calculate your ROI and earnings potential</p>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">💰 Investment Calculator</h2>
+
+            <div class="input-group">
+                <label class="input-label">USDT Investment Amount</label>
+                <div class="input-wrapper">
+                    <input
+                        type="number"
+                        id="usdt-input"
+                        class="input-field"
+                        placeholder="10"
+                        min="10"
+                        max="100000"
+                        value="10"
+                    >
+                    <span class="input-suffix">USDT</span>
+                </div>
+            </div>
+
+            <button id="btn-calculate" class="btn-calculate">Calculate ROI</button>
+        </div>
+
+        <div id="results" class="results">
+            <div class="card">
+                <div class="days-header">
+                    <div class="days-item">
+                        <div class="days-count" id="days-roi">0</div>
+                        <div class="days-label">days to ROI</div>
+                    </div>
+                    <div class="days-item">
+                        <div class="days-count" id="days-x2">0</div>
+                        <div class="days-label">days to 2×</div>
+                    </div>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric">
+                        <div class="metric-value" style="color: var(--color-plasma);">💎 <span id="final-plasma">0</span></div>
+                        <div class="metric-label">Final Plasma</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" style="color: var(--color-success);">💵 $<span id="final-usdt">0</span></div>
+                        <div class="metric-label">USDT Value</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" style="color: var(--color-plasma);">💎 <span id="plasma-hour">0</span></div>
+                        <div class="metric-label">Plasma/Hour</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" style="color: var(--color-energy);">⚡ <span id="energy-hour">0</span></div>
+                        <div class="metric-label">Energy/Hour</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" style="color: var(--color-primary);">🏗️ <span id="total-tiles">0</span></div>
+                        <div class="metric-label">Tiles</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" style="color: var(--color-secondary);">⬆️ <span id="total-upgrades">0</span></div>
+                        <div class="metric-label">Upgrades</div>
+                    </div>
+                </div>
+
+                <h3 class="card-title" style="font-size: 1rem; margin-top: 1rem; margin-bottom: 1rem;">Action Log</h3>
+                <div class="action-log" id="action-log"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>*The calculations are based on average rewards from battles, so your actual rewards may vary a bit. Adjust your strategy with that in mind.</p>
+            <p><a href="index.html">← Back to Homepage</a></p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // COSMIC YIELD - ROI CALCULATOR
+        // ============================================================================
+
+        const BUILDINGS = [
+            { level: 1, cost: 10000, perHour: 4, name: "Mercury", icon: "🔋" },
+            { level: 2, cost: 28000, perHour: 12, name: "Venus", icon: "🌱" },
+            { level: 3, cost: 54000, perHour: 24, name: "Earth", icon: "⚙️" },
+            { level: 4, cost: 100000, perHour: 48, name: "Mars", icon: "🔬" },
+            { level: 5, cost: 250000, perHour: 124, name: "Jupiter", icon: "🤖" },
+            { level: 6, cost: 500000, perHour: 260, name: "Saturn", icon: "🚀" },
+            { level: 7, cost: 1000000, perHour: 550, name: "Uranus", icon: "☢️" },
+            { level: 8, cost: 2000000, perHour: 1150, name: "Neptune", icon: "🌟" },
+        ].map(b => ({
+            ...b,
+            eff: b.perHour / b.cost,
+            upgradeCost: Math.floor(b.cost / 4),
+            upgradePerHour: Math.floor(b.perHour / 4)
+        }));
+
+        const BY_EFF = [...BUILDINGS].sort((a, b) => b.eff - a.eff);
+        const MAX_TILES = 360;
+        const MAX_UPGRADES = 9;
+
+        const battleGold = (pH) => pH * 12.8;
+        const dailyGems = (pH) => pH * 24;
+        const dailyGold = (pH) => pH * 24;
+
+        function findBestUpgrade(buildings, gold) {
+            let best = null;
+            let bestEff = 0;
+
+            for (let i = 0; i < buildings.length; i++) {
+                const b = buildings[i];
+                if (b.upgrades >= MAX_UPGRADES) continue;
+
+                const bData = BUILDINGS.find(x => x.level === b.level);
+                if (bData.upgradeCost <= gold && bData.eff > bestEff) {
+                    bestEff = bData.eff;
+                    best = { index: i, building: bData };
+                }
+            }
+            return best;
+        }
+
+        function buildOptimally(gold, perHour, buildings) {
+            let built = [];
+            let upgraded = [];
+
+            while (true) {
+                const newBuilding = BY_EFF.find(b => b.cost <= gold);
+                const upgrade = findBestUpgrade(buildings, gold);
+
+                if (buildings.length < MAX_TILES && newBuilding) {
+                    if (upgrade && upgrade.building.eff > newBuilding.eff) {
+                        gold -= upgrade.building.upgradeCost;
+                        perHour += upgrade.building.upgradePerHour;
+                        buildings[upgrade.index].upgrades++;
+                        upgraded.push({ ...upgrade.building, index: upgrade.index, newLevel: buildings[upgrade.index].upgrades });
+                    } else {
+                        gold -= newBuilding.cost;
+                        perHour += newBuilding.perHour;
+                        buildings.push({ level: newBuilding.level, upgrades: 0 });
+                        built.push(newBuilding);
+                    }
+                } else if (upgrade) {
+                    gold -= upgrade.building.upgradeCost;
+                    perHour += upgrade.building.upgradePerHour;
+                    buildings[upgrade.index].upgrades++;
+                    upgraded.push({ ...upgrade.building, index: upgrade.index, newLevel: buildings[upgrade.index].upgrades });
+                } else {
+                    break;
+                }
+            }
+
+            return { gold, perHour, built, upgraded };
+        }
+
+        function simulate(usdt) {
+            const target = usdt * 1000;
+            const target2x = target * 2;
+            let gold = usdt * 1000;
+            let plasma = 0;
+            let perHour = 0;
+            let buildings = [];
+            let totalUpgrades = 0;
+            let daysToROI = null;
+            let days2x = null;
+            const logs = [];
+
+            // Day 0: Build
+            const init = buildOptimally(gold, perHour, buildings);
+            gold = init.gold;
+            perHour = init.perHour;
+            totalUpgrades += init.upgraded.length;
+
+            logs.push({
+                day: 0,
+                actions: [
+                    ...init.built.map(b => `🏗️ Built ${b.icon} ${b.name}`),
+                    ...init.upgraded.map(u => `⬆️ Upgraded ${u.icon} ${u.name} → Lv.${u.newLevel}`)
+                ],
+                gold: Math.floor(gold),
+                plasma: Math.floor(plasma),
+                perHour
+            });
+
+            // Day 0: First battle
+            if (perHour > 0) {
+                const bReward = battleGold(perHour);
+                gold += bReward;
+                logs[0].actions.push(`⚔️ Battle: +${Math.floor(bReward)} Energy`);
+                logs[0].gold = Math.floor(gold);
+            }
+
+            // Daily loop
+            for (let day = 1; day <= 400; day++) {
+                const dayLog = { day, actions: [] };
+
+                // Daily income
+                const plasmaIncome = dailyGems(perHour);
+                const goldIncome = dailyGold(perHour);
+                plasma += plasmaIncome;
+                gold += goldIncome;
+
+                dayLog.actions.push(`💎 +${Math.floor(plasmaIncome)} Plasma`);
+                dayLog.actions.push(`⚡ +${Math.floor(goldIncome)} Energy`);
+
+                // Battle
+                const bReward = battleGold(perHour);
+                gold += bReward;
+                dayLog.actions.push(`⚔️ Battle: +${Math.floor(bReward)} Energy`);
+
+                // Check ROI
+                if (plasma >= target && daysToROI === null) {
+                    daysToROI = day;
+                }
+                if (plasma >= target2x) {
+                    days2x = day;
+                    dayLog.gold = Math.floor(gold);
+                    dayLog.plasma = Math.floor(plasma);
+                    dayLog.perHour = perHour;
+                    logs.push(dayLog);
+                    return { days: daysToROI, days2x, plasma, gold, perHour, tiles: buildings.length, totalUpgrades, logs };
+                }
+
+                // Smart Reinvest
+                if (plasma > 0) {
+                    const currentDays = Math.ceil((target - plasma) / dailyGems(perHour));
+                    let bestReinvest = { amt: 0, newDays: currentDays };
+
+                    // Test each building type
+                    for (const b of BY_EFF) {
+                        if (buildings.length >= MAX_TILES) break;
+                        if (b.cost <= gold) continue;
+
+                        const needed = b.cost - gold;
+                        const plasmaNeeded = Math.ceil(needed / 2);
+                        if (plasmaNeeded > plasma) continue;
+
+                        const testGold = gold + plasmaNeeded * 2;
+                        const testBuildings = buildings.map(x => ({...x}));
+                        const testPerHour = perHour;
+                        const testResult = buildOptimally(testGold, testPerHour, testBuildings);
+
+                        const newDays = Math.ceil((target - (plasma - plasmaNeeded)) / dailyGems(testResult.perHour));
+                        if (newDays < bestReinvest.newDays) {
+                            bestReinvest = { amt: plasmaNeeded, newDays };
+                        }
+                    }
+
+                    // Test upgrades
+                    for (const b of BY_EFF) {
+                        if (b.upgradeCost <= gold) continue;
+
+                        const hasUpgradeable = buildings.some(x => x.level === b.level && x.upgrades < MAX_UPGRADES);
+                        if (!hasUpgradeable) continue;
+
+                        const needed = b.upgradeCost - gold;
+                        const plasmaNeeded = Math.ceil(needed / 2);
+                        if (plasmaNeeded > plasma) continue;
+
+                        const testGold = gold + plasmaNeeded * 2;
+                        const testBuildings = buildings.map(x => ({...x}));
+                        const testPerHour = perHour;
+                        const testResult = buildOptimally(testGold, testPerHour, testBuildings);
+
+                        const newDays = Math.ceil((target - (plasma - plasmaNeeded)) / dailyGems(testResult.perHour));
+                        if (newDays < bestReinvest.newDays) {
+                            bestReinvest = { amt: plasmaNeeded, newDays };
+                        }
+                    }
+
+                    // Test full conversion
+                    const fullGold = gold + plasma * 2;
+                    const testBuildings = buildings.map(x => ({...x}));
+                    const testPerHour = perHour;
+                    const testResult = buildOptimally(fullGold, testPerHour, testBuildings);
+
+                    if (testResult.perHour > perHour) {
+                        const newDays = Math.ceil(target / dailyGems(testResult.perHour));
+                        if (newDays < bestReinvest.newDays) {
+                            bestReinvest = { amt: plasma, newDays };
+                        }
+                    }
+
+                    // Apply best reinvest
+                    if (bestReinvest.amt > 0 && bestReinvest.newDays < currentDays) {
+                        plasma -= bestReinvest.amt;
+                        gold += bestReinvest.amt * 2;
+                        dayLog.actions.push(`🔄 Swap: ${Math.floor(bestReinvest.amt)} Plasma → ${Math.floor(bestReinvest.amt * 2)} Energy`);
+                    }
+                }
+
+                // Build/Upgrade
+                const result = buildOptimally(gold, perHour, buildings);
+
+                if (result.built.length > 0 || result.upgraded.length > 0) {
+                    result.built.forEach(b => dayLog.actions.push(`🏗️ Built ${b.icon} ${b.name}`));
+                    result.upgraded.forEach(u => dayLog.actions.push(`⬆️ Upgraded ${u.icon} ${u.name} → Lv.${u.newLevel}`));
+                }
+
+                gold = result.gold;
+                perHour = result.perHour;
+                totalUpgrades += result.upgraded.length;
+
+                dayLog.gold = Math.floor(gold);
+                dayLog.plasma = Math.floor(plasma);
+                dayLog.perHour = perHour;
+                logs.push(dayLog);
+            }
+
+            return { days: daysToROI || Infinity, days2x: days2x || Infinity, plasma, gold, perHour, tiles: buildings.length, totalUpgrades, logs };
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function formatNumber(num) {
+            return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        }
+
+        document.getElementById('btn-calculate').addEventListener('click', () => {
+            const usdt = parseFloat(document.getElementById('usdt-input').value);
+
+            if (!usdt || isNaN(usdt) || usdt < 10) {
+                showToast('Minimum investment is 10 USDT');
+                return;
+            }
+            if (usdt > 100000) {
+                showToast('Maximum investment is 100,000 USDT');
+                return;
+            }
+
+            const result = simulate(usdt);
+
+            document.getElementById('days-roi').textContent = result.days;
+            document.getElementById('days-x2').textContent = result.days2x;
+            document.getElementById('final-plasma').textContent = formatNumber(Math.floor(result.plasma));
+            document.getElementById('final-usdt').textContent = (result.plasma / 1000).toFixed(2);
+            document.getElementById('plasma-hour').textContent = formatNumber(result.perHour);
+            document.getElementById('energy-hour').textContent = formatNumber(result.perHour);
+            document.getElementById('total-tiles').textContent = result.tiles;
+            document.getElementById('total-upgrades').textContent = result.totalUpgrades;
+
+            // Display action log
+            const logContainer = document.getElementById('action-log');
+            logContainer.innerHTML = '';
+
+            result.logs.slice(-50).forEach(log => {
+                log.actions.forEach((action, idx) => {
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry';
+
+                    let type = 'action';
+                    let details = action;
+
+                    if (action.includes('Built')) {
+                        type = idx === 0 && log.day === 0 ? 'initial' : 'build';
+                        details = action.replace(/🏗️ Built /, '').replace(/ /g, ' ');
+                    } else if (action.includes('Upgraded')) {
+                        type = 'build';
+                        details = action.replace(/⬆️ Upgraded | → Lv\.\d+/g, '').trim();
+                    } else if (action.includes('Battle')) {
+                        type = 'battle';
+                        details = action.replace(/⚔️ Battle: \+/, '~').replace(' Energy', '');
+                    } else if (action.includes('Swap')) {
+                        type = 'reinvest';
+                        details = action.replace(/🔄 Swap: | Plasma | Energy/g, '').trim();
+                    } else if (action.includes('Plasma')) {
+                        return; // Skip plasma income lines in compact view
+                    } else if (action.includes('Energy')) {
+                        return; // Skip energy income lines in compact view
+                    }
+
+                    entry.innerHTML = `
+                        <div class="log-day">Day ${log.day}</div>
+                        <div class="log-type">${type}</div>
+                        <div class="log-details">${details}</div>
+                        <div class="log-balance">
+                            <span class="plasma">💎 ${formatNumber(log.plasma)}</span>
+                            <span class="gold">⚡ ${formatNumber(log.gold)}</span>
+                        </div>
+                    `;
+                    logContainer.appendChild(entry);
+                });
+            });
+
+            document.getElementById('results').classList.add('show');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        document.getElementById('usdt-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('btn-calculate').click();
+            }
+        });
+
+        // Starfield Effect - Hyperspace Jump Style
+        const starfield = document.getElementById('starfield');
+        const starCount = 200;
+
+        function createStar() {
+            const star = document.createElement('div');
+            star.className = 'star';
+
+            // Position aléatoire
+            const startX = Math.random() * window.innerWidth;
+            const startY = Math.random() * window.innerHeight;
+            star.style.left = startX + 'px';
+            star.style.top = startY + 'px';
+
+            // Taille aléatoire
+            const size = Math.random() * 2 + 1;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+
+            // Couleur aléatoire (blanc, cyan, rose)
+            const colors = ['#ffffff', 'rgba(0, 240, 255, 0.8)', 'rgba(255, 0, 170, 0.6)'];
+            star.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+            // Direction aléatoire depuis le centre
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            const angle = Math.atan2(startY - centerY, startX - centerX);
+            const distance = Math.random() * 500 + 300; // Distance variable
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+
+            star.style.setProperty('--tx', tx + 'px');
+            star.style.setProperty('--ty', ty + 'px');
+
+            // Durée d'animation aléatoire (vitesse dispersée)
+            const duration = Math.random() * 3 + 2; // Entre 2 et 5 secondes
+            const delay = Math.random() * 2; // Délai aléatoire
+
+            star.style.animation = `shootingStar ${duration}s ease-out ${delay}s infinite`;
+
+            starfield.appendChild(star);
+        }
+
+        // Créer les étoiles
+        for (let i = 0; i < starCount; i++) {
+            createStar();
+        }
+
+        // Recréer les étoiles en cas de redimensionnement
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                starfield.innerHTML = '';
+                for (let i = 0; i < starCount; i++) {
+                    createStar();
+                }
+            }, 250);
+        });
+    </script>
+</body>
+</html>
