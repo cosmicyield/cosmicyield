@@ -2360,12 +2360,6 @@ async function sellPlasma(plasmaAmount) {
 
     GameSounds.play('click');
 
-    // Vérifier montant minimum
-    if (plasmaAmount < 1000) {
-        showNotification('Minimum sell amount is 1,000 Plasma', 'error');
-        return;
-    }
-
     // Vérifier si le joueur a assez de plasma
     if (window.gameManager.plasma < plasmaAmount) {
         showNotification('Not enough Plasma!', 'error');
@@ -2394,8 +2388,8 @@ async function sellCustomAmount() {
     const input = document.getElementById('custom-plasma-amount');
     const amount = parseFloat(input.value);
 
-    if (!amount || amount < 1000) {
-        showNotification('Please enter a valid amount (min. 1,000 Plasma)', 'error');
+    if (!amount || amount <= 0) {
+        showNotification('Please enter a valid amount', 'error');
         return;
     }
 
