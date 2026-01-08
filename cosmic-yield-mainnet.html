@@ -4121,7 +4121,32 @@ class Web3GameManager {
 
     // Additional compatibility methods for Web3 version
     buildInitialMenu() {
-        // No-op for Web3 version - UI is built from HTML
+        const grid = document.getElementById('module-grid');
+        if (!grid) return;
+
+        grid.innerHTML = GAME_CONFIG.MODULES.map(module => {
+            const canAfford = this.energy >= module.cost;
+            return `
+                <div class="module-card ${canAfford ? '' : 'disabled'}"
+                     data-module-id="${module.id}"
+                     data-can-afford="${canAfford}">
+                    <div class="module-icon">
+                        <img src="kenney_planets/Planets/${module.sprite}" alt="${module.name}">
+                    </div>
+                    <div class="module-name">${module.name}</div>
+                    <div class="module-stats">+${module.perHour}/hr production</div>
+                    <div class="module-cost">⚡ ${GameHelpers.formatNumber(module.cost)}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Attach click listeners
+        grid.querySelectorAll('.module-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const moduleId = parseInt(card.dataset.moduleId);
+                selectModuleToBuild(moduleId);
+            });
+        });
     }
 
     getModuleData(tileIndex) {
