@@ -119,7 +119,7 @@ contract CosmicYield {
         require(_depositAmount > 0, "No USDT");
         require(USDT.transferFrom(msg.sender, address(this), _depositAmount), "Transfer failed");
 
-        uint256 energy = (_depositAmount * 1000) / 1e6;
+        uint256 energy = (_depositAmount * 1000) / 1e18;
         require(energy > 0, "No energy");
 
         Planet storage planet = planets[msg.sender];
@@ -151,10 +151,10 @@ contract CosmicYield {
         collect(planet);
         require(planet.plasma >= _plasma, "Insufficient plasma");
 
-        uint256 usdtPayout = (_plasma * 1e6) / 1000;
+        uint256 usdtPayout = (_plasma * 1e18) / 1000;
         uint256 contractBalance = USDT.balanceOf(address(this));
         usdtPayout = usdtPayout > contractBalance ? contractBalance : usdtPayout;
-        _plasma = (usdtPayout * 1000) / 1e6;
+        _plasma = (usdtPayout * 1000) / 1e18;
 
         planet.plasma = uint32(planet.plasma - _plasma);
         emit PlasmaSold(msg.sender, _plasma);

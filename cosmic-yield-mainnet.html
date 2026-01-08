@@ -2410,8 +2410,8 @@ async function purchaseEnergy(usdtAmount) {
         return;
     }
 
-    // Convert USDT amount to wei (USDT has 6 decimals)
-    const usdtWei = BigInt(usdtAmount) * BigInt(10 ** 6);
+    // Convert USDT amount to wei (FakeUSDT has 18 decimals)
+    const usdtWei = BigInt(usdtAmount) * BigInt(10 ** 18);
 
     try {
         const result = await window.web3Manager.buyEnergy(usdtWei);
