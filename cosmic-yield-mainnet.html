@@ -4192,13 +4192,20 @@ class Web3GameManager {
         const value = this.modules[tileIndex];
         if (value === 0) return null;
 
-        const level = value; // For Web3, tiles store the level directly
-        const module = GAME_CONFIG.MODULES[level - 1];
+        // Convert BigInt to Number
+        const numValue = Number(value);
+
+        // Decode: (upgrades * 10) + planetId
+        const planetId = numValue % 10;        // Extract planet ID (1-8)
+        const upgrades = Math.floor(numValue / 10); // Extract upgrade count (0-9)
+
+        // Access MODULES array using planetId - 1 (array is 0-indexed)
+        const module = GAME_CONFIG.MODULES[planetId - 1];
 
         return {
-            level,
-            upgrades: 0,
-            module: module
+            level: planetId,           // Planet ID (1-8)
+            upgrades: upgrades,        // Upgrade count (0-9)
+            module: module             // Module config object
         };
     }
 
