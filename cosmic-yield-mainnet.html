@@ -3485,32 +3485,61 @@ class GameScene extends Phaser.Scene {
                 // MODE PLACEMENT = Placer le module
                 else if (window.gameManager.isPlacingModule) {
                     console.log('[DEBUG POINTERUP] PLACEMENT mode - calling tryPlaceModule');
-                    this.tryPlaceModule(this.hoveredTile);
+                    this.tryPlaceModule(this.hoveredTile).catch(err => {
+                        console.error('tryPlaceModule error:', err);
+                        showNotification('Failed to place building: ' + err.message, 'error');
+                    });
                 }
             }
         });
     }
 
-    tryPlaceModule(tileIndex) {
+    async tryPlaceModule(tileIndex) {
         console.log('[DEBUG tryPlaceModule] START - tileIndex:', tileIndex);
         const moduleId = window.gameManager.selectedModuleId;
-        console.log('[DEBUG tryPlaceModule] moduleId:', moduleId);
+        console.log('[DEBUG tryPlaceModule] moduleId:', moduleId, 'level:', moduleId);
 
-        if (window.gameManager.modules[tileIndex] === 0) {
-            console.log('[DEBUG tryPlaceModule] Tile empty, calling buildModule');
-            const success = window.gameManager.buildModule(tileIndex, moduleId);
-            console.log('[DEBUG tryPlaceModule] buildModule result:', success);
-            if (success) {
-                console.log('[DEBUG tryPlaceModule] Success! Creating visual...');
-                this.createModuleVisual(tileIndex);
-                this.showBuildEffect(tileIndex);
-                window.gameManager.isPlacingModule = false;
-                window.gameManager.selectedModuleId = null;
-                console.log('[DEBUG tryPlaceModule] DONE - placement complete');
-            }
-        } else {
+        // Validate tile is empty
+        if (window.gameManager.modules[tileIndex] !== 0) {
             console.log('[DEBUG tryPlaceModule] Tile occupied!');
             showNotification('Tile already occupied!', 'error');
+            return;
+        }
+
+        // Check wallet connection
+        if (!window.web3Manager || !window.web3Manager.userAddress) {
+            console.log('[DEBUG tryPlaceModule] Wallet not connected');
+            showNotification('Please connect your wallet first', 'error');
+            return;
+        }
+
+        try {
+            console.log('[DEBUG tryPlaceModule] Calling web3Manager.placeBuildings with tileIndex:', tileIndex, 'moduleId:', moduleId);
+
+            // Call smart contract
+            const result = await window.web3Manager.placeBuildings([tileIndex], moduleId);
+            console.log('[DEBUG tryPlaceModule] Transaction result:', result);
+
+            if (result && result.status === 1) {
+                console.log('[DEBUG tryPlaceModule] Success! Creating visual...');
+
+                // Update local state
+                window.gameManager.modules[tileIndex] = moduleId;
+
+                // Create visual and effects
+                this.createModuleVisual(tileIndex);
+                this.showBuildEffect(tileIndex);
+
+                // Reset placement mode
+                window.gameManager.isPlacingModule = false;
+                window.gameManager.selectedModuleId = null;
+
+                showNotification('Planet placed successfully!', 'success');
+                console.log('[DEBUG tryPlaceModule] DONE - placement complete');
+            }
+        } catch (error) {
+            console.error('[DEBUG tryPlaceModule] Error placing building:', error);
+            throw error;
         }
     }
 
