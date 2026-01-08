@@ -3815,7 +3815,8 @@ class Web3GameManager {
 
             // Load planet data
             await this.loadPlanetData();
-            console.log('[Web3] Planet data loaded');
+            this.updateUI();
+            console.log('[Web3] Planet data loaded and UI updated');
 
             return true;
         } catch (error) {
@@ -4000,6 +4001,7 @@ class Web3GameManager {
                 // Reload planet data
                 setTimeout(async () => {
                     await this.loadPlanetData();
+                    this.updateUI();
                     this.hideTxModal();
                 }, 2000);
 
