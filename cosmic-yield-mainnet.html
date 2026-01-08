@@ -3748,6 +3748,11 @@ class Web3GameManager {
         this.modules = new Array(360).fill(0);
         this.moduleLevels = {};
         this.ally = null;
+
+        // UI state for building placement
+        this.isPlacingModule = false;
+        this.selectedModuleId = null;
+        this.selectedTileIndex = null;
     }
 
     async init() {
@@ -4121,7 +4126,52 @@ class Web3GameManager {
 
     // Additional compatibility methods for Web3 version
     buildInitialMenu() {
-        // No-op for Web3 version - UI is built from HTML
+        const grid = document.getElementById('module-grid');
+        if (!grid) return;
+
+        grid.innerHTML = GAME_CONFIG.MODULES.map(module => {
+            const canAfford = this.energy >= module.cost;
+            return `
+                <div class="module-card ${canAfford ? '' : 'disabled'}"
+                     data-module-id="${module.id}"
+                     data-can-afford="${canAfford}">
+                    <div class="module-icon">
+                        <img src="kenney_planets/Planets/${module.sprite}" alt="${module.name}">
+                    </div>
+                    <div class="module-name">${module.name}</div>
+                    <div class="module-stats">+${module.perHour}/hr production</div>
+                    <div class="module-cost">⚡ ${GameHelpers.formatNumber(module.cost)}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Attach event listeners to module cards
+        this.attachModuleCardListeners();
+    }
+
+    attachModuleCardListeners() {
+        const cards = document.querySelectorAll('.module-card');
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                if (card.dataset.canAfford === 'true') {
+                    const moduleId = parseInt(card.dataset.moduleId);
+                    this.selectModuleToBuild(moduleId);
+                }
+            });
+        });
+    }
+
+    selectModuleToBuild(moduleId) {
+        const module = GAME_CONFIG.MODULES.find(m => m.id === moduleId);
+        if (!module) return;
+
+        this.isPlacingModule = true;
+        this.selectedModuleId = moduleId;
+
+        const buildModal = document.getElementById('build-modal');
+        if (buildModal) buildModal.classList.remove('active');
+
+        showNotification(`Click on an empty tile to place ${module.name}`, 'info');
     }
 
     getModuleData(tileIndex) {
