@@ -3736,6 +3736,10 @@ class Web3GameManager {
         this.modules = new Array(360).fill(0);
         this.moduleLevels = {};
         this.ally = null;
+
+        // Timing for production estimation
+        this.lastSyncTime = 0;  // When we last synced from contract
+        this.claimTime = 0;     // Blockchain timestamp from contract
     }
 
     async init() {
@@ -3806,6 +3810,9 @@ class Web3GameManager {
             // Load planet data
             await this.loadPlanetData();
             this.updateUI();
+
+            // Start dynamic UI update loop (every 100ms for smooth counters)
+            this.startProductionLoop();
 
             // Rebuild all planet sprites from loaded data
             if (window.gameScene) {
@@ -3906,6 +3913,10 @@ class Web3GameManager {
             this.plasma = Number(planetData.plasma);
             this.perHour = Number(planetData.perHour);
             this.ally = planetData.ally;
+            this.claimTime = Number(planetData.claimTime);
+
+            // Mark when we synced (for production estimation)
+            this.lastSyncTime = Date.now();
 
             // Extract tile data (convert tiles array to module format)
             this.modules.fill(0);
@@ -3920,6 +3931,53 @@ class Web3GameManager {
         } catch (error) {
             console.error('Error loading planet data:', error);
         }
+    }
+
+    // ==========================================
+    // PRODUCTION ESTIMATION (for dynamic UI)
+    // ==========================================
+
+    getEstimatedEnergy() {
+        if (this.perHour === 0 || this.lastSyncTime === 0) {
+            return this.energy;
+        }
+
+        // Calculate time elapsed since last sync
+        const now = Date.now();
+        const elapsedMs = now - this.lastSyncTime;
+
+        // Calculate production per millisecond (perHour / 3600000 = perMs)
+        const perMs = this.perHour / 3600000;
+        const earned = elapsedMs * perMs;
+
+        // Return estimated energy (cap at uint32 max)
+        return Math.min(this.energy + earned, 4294967295);
+    }
+
+    getEstimatedPlasma() {
+        if (this.perHour === 0 || this.lastSyncTime === 0) {
+            return this.plasma;
+        }
+
+        // Calculate time elapsed since last sync
+        const now = Date.now();
+        const elapsedMs = now - this.lastSyncTime;
+
+        // Calculate production per millisecond (perHour / 3600000 = perMs)
+        const perMs = this.perHour / 3600000;
+        const earned = elapsedMs * perMs;
+
+        // Return estimated plasma (cap at uint32 max)
+        return Math.min(this.plasma + earned, 4294967295);
+    }
+
+    startProductionLoop() {
+        // Update UI every 100ms for smooth, dynamic energy/plasma counters
+        setInterval(() => {
+            if (this.isConnected) {
+                this.updateUI();
+            }
+        }, 100);
     }
 
     async approveUSDT(amount) {
@@ -4065,7 +4123,7 @@ class Web3GameManager {
     load() {} // Web3 version loads from contract
 
     updateUI() {
-        // Update energy and plasma display
+        // Update energy and plasma display with estimated values (for dynamic counters)
         const energyEl = document.getElementById('energy-value');
         const plasmaEl = document.getElementById('plasma-value');
 
@@ -4075,8 +4133,12 @@ class Web3GameManager {
             return parts.join('.');
         };
 
-        if (energyEl) energyEl.textContent = formatLive(this.energy);
-        if (plasmaEl) plasmaEl.textContent = formatLive(this.plasma);
+        // Display ESTIMATED values (includes production since last sync)
+        const estimatedEnergy = this.getEstimatedEnergy();
+        const estimatedPlasma = this.getEstimatedPlasma();
+
+        if (energyEl) energyEl.textContent = formatLive(estimatedEnergy);
+        if (plasmaEl) plasmaEl.textContent = formatLive(estimatedPlasma);
 
         // Add animation
         if (energyEl) {
