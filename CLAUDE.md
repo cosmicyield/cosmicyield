@@ -3,8 +3,8 @@
 > **Note for Claude:** Always check the `## 🔄 Session Hand-off` section first to see where the last session left off.
 
 ## 🔄 Session Hand-off (Context for /clear)
-- **Current Goal:** ✅ COMPLETE - Web3 mainnet fully functional with upgrade button now connected to smart contract!
-- **Last Significant Change:** Integrated upgrade button with Web3 smart contract - simplified UI, added async transaction support (January 8, 2026)
+- **Current Goal:** ✅ COMPLETE - Web3 version now has dynamic energy/plasma counters like the demo!
+- **Last Significant Change:** Added production estimation system for smooth, dynamic counters in Web3 version (January 8, 2026 - Session 2)
 - **Technical Context:**
   - All core features implemented, tested, and WORKING on testnet
   - Game deployed to GitHub (cosmicyield/cosmicyield) and Render
@@ -55,6 +55,16 @@
      - Shows transaction modal with gas verification link on BSCScan
      - Planet visuals auto-update after successful upgrade
      - Follows same pattern as other Web3 functions (buyEnergy, sellPlasma, etc.)
+
+  9. **NEW (Jan 8 - Session 2, Part 2):** Added dynamic energy/plasma counters to Web3 version ✅
+     - Web3GameManager now has `getEstimatedEnergy()` and `getEstimatedPlasma()` methods
+     - Tracks `lastSyncTime` (when blockchain data was last loaded)
+     - Estimates production between syncs: `perHour / 3600000 * elapsed_ms`
+     - Added `startProductionLoop()` - updates UI every 100ms for smooth animation
+     - `updateUI()` now displays estimated values instead of static blockchain values
+     - Counters are **optimistic** (smooth visually) but verified on blockchain after each transaction
+     - Gives Web3 version same dynamic feel as local demo mode!
+     - Zero blockchain cost (pure frontend estimation, no gas)
 
 - **Known Limitations (by design):**
   - Planets cannot be moved once placed (no moveBuilding() function in contract)
