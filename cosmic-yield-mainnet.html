@@ -3827,7 +3827,7 @@ class Web3GameManager {
             const network = await this.provider.getNetwork();
             console.log('[Web3] Network:', network.chainId, 'Expected:', CONTRACTS.chainId);
 
-            if (network.chainId !== BigInt(CONTRACTS.chainId)) {
+            if (Number(network.chainId) !== CONTRACTS.chainId) {
                 console.log('[Web3] Wrong network, switching...');
                 await this.switchNetwork();
                 return;
