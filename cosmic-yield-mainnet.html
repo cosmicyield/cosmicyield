@@ -1,0 +1,4283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Yield Mainnet - On-Chain Space Mining</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Ethers.js for Web3 - Using jsdelivr CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-bg: #0a0a1a;
+            --color-primary: #00f0ff;
+            --color-secondary: #ff00aa;
+            --color-energy: #ffdd00;
+            --color-plasma: #aa00ff;
+            --color-success: #00ff88;
+            --color-danger: #ff4444;
+            --color-panel: rgba(20, 20, 50, 0.9);
+            --color-panel-border: rgba(0, 240, 255, 0.3);
+            --font-display: 'Orbitron', sans-serif;
+            --font-body: 'Exo 2', sans-serif;
+        }
+
+        body {
+            background: var(--color-bg);
+            font-family: var(--font-body);
+            overflow: hidden;
+            color: white;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #game-container canvas {
+            display: block;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--color-bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-title {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 2rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .loading-bar-container {
+            width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .loading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .loading-text {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* HUD Overlay */
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #hud > * {
+            pointer-events: auto;
+        }
+
+        .resource-panel {
+            display: flex;
+            gap: 1rem;
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Séparer Energy et Plasma en deux zones verticales */
+        .energy-panel {
+            position: fixed;
+            top: 20px;
+            left: 100px;
+        }
+
+        .plasma-panel {
+            position: fixed;
+            top: 95px;
+            left: 100px;
+        }
+
+        .resource {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .resource-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .resource-icon.energy {
+            background: linear-gradient(135deg, #ffdd00, #ff8800);
+            box-shadow: 0 0 15px rgba(255, 221, 0, 0.5);
+        }
+
+        .resource-icon.plasma {
+            background: linear-gradient(135deg, #aa00ff, #ff00aa);
+            box-shadow: 0 0 15px rgba(170, 0, 255, 0.5);
+        }
+
+        .resource-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .resource-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .resource-value {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            transition: all 0.1s ease-out;
+        }
+
+        .resource-value.energy { color: var(--color-energy); }
+        .resource-value.plasma { color: var(--color-plasma); }
+
+        /* Animation pulsante pour attirer l'oeil */
+        .resource-value.value-updating {
+            transform: scale(1.08);
+            text-shadow: 0 0 15px currentColor;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% {
+                text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+            }
+            50% {
+                text-shadow: 0 0 20px currentColor, 0 0 30px currentColor, 0 0 40px currentColor;
+            }
+        }
+
+        .resource-value {
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        .production-rate {
+            font-size: 0.7rem;
+            color: var(--color-success);
+        }
+
+        /* Purchase Button */
+        .purchase-btn {
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            width: 70px;
+            height: 60px;
+            color: #000;
+            font-family: var(--font-display);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+        }
+
+        .purchase-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.8);
+            background: linear-gradient(135deg, #00ffaa, #00dd77);
+        }
+
+        .purchase-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Sell Button */
+        .sell-btn {
+            background: linear-gradient(135deg, #ff8800, #ff6600);
+            border: 2px solid #ff8800;
+            border-radius: 12px;
+            width: 70px;
+            height: 60px;
+            color: #000;
+            font-family: var(--font-display);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(255, 136, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            position: fixed;
+            top: 95px;
+            left: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+        }
+
+        .sell-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(255, 136, 0, 0.8);
+            background: linear-gradient(135deg, #ffaa00, #ff7700);
+        }
+
+        .sell-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(0, 0, 0, 0.9);
+        }
+
+        /* Control Buttons - Bottom Left */
+        .control-buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            background: rgba(20, 20, 50, 0.95);
+            border: 2px solid rgba(0, 240, 255, 0.5);
+            border-radius: 12px;
+            width: 70px;
+            height: 60px;
+            color: #fff;
+            font-family: var(--font-display);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 30px rgba(0, 240, 255, 0.5);
+            border-color: var(--color-primary);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.active {
+            background: rgba(0, 240, 255, 0.2);
+            border-color: var(--color-primary);
+        }
+
+        .control-btn.active .control-icon {
+            animation: pulse-icon 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .control-btn.exit-btn {
+            background: rgba(255, 68, 68, 0.95);
+            border-color: rgba(255, 68, 68, 0.5);
+        }
+
+        .control-btn.exit-btn:hover {
+            border-color: var(--color-danger);
+            box-shadow: 0 6px 30px rgba(255, 68, 68, 0.5);
+        }
+
+        /* Version Label */
+        .version-label {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            backdrop-filter: blur(10px);
+            font-family: var(--font-display);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            backdrop-filter: blur(10px);
+            text-align: right;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+
+        .commander-name {
+            font-family: var(--font-display);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+
+        .station-level {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Bottom HUD */
+        #bottom-hud {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #bottom-hud > * {
+            pointer-events: auto;
+        }
+
+        .action-btn {
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            color: white;
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn:hover {
+            background: rgba(0, 240, 255, 0.2);
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .action-btn.build {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 240, 255, 0.1));
+            border-color: var(--color-primary);
+        }
+
+        .action-btn.raid {
+            background: linear-gradient(135deg, rgba(255, 0, 170, 0.2), rgba(255, 0, 170, 0.1));
+            border-color: var(--color-secondary);
+        }
+
+        .action-btn.swap {
+            background: linear-gradient(135deg, rgba(170, 0, 255, 0.2), rgba(170, 0, 255, 0.1));
+            border-color: var(--color-plasma);
+        }
+
+        /* Build Menu Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: white;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .module-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .module-card:hover {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+        }
+
+        .module-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .module-card.disabled:hover {
+            transform: none;
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .module-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .module-icon img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.3));
+        }
+
+        .module-name {
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .module-stats {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.25rem;
+        }
+
+        .module-cost {
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            color: var(--color-energy);
+        }
+
+        /* Raid Panel */
+        .raid-panel {
+            text-align: center;
+        }
+
+        .raid-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .raid-description {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 1rem;
+        }
+
+        .win-chance-slider {
+            width: 100%;
+            margin: 1rem 0;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            height: 10px;
+        }
+
+        .win-chance-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .win-chance-display {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .reward-preview {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .reward-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .reward-value {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-energy);
+        }
+
+        .raid-btn {
+            background: linear-gradient(135deg, var(--color-secondary), #ff4400);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 3rem;
+            color: white;
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .raid-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 30px rgba(255, 0, 170, 0.5);
+        }
+
+        .raid-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cooldown-text {
+            font-size: 0.85rem;
+            color: var(--color-danger);
+            margin-top: 1rem;
+        }
+
+        /* Notifications */
+        #notifications {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 300;
+            align-items: center;
+        }
+
+        .notification {
+            background: var(--color-panel);
+            border: 1px solid var(--color-panel-border);
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            backdrop-filter: blur(10px);
+            animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+            max-width: 400px;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .notification.success { border-color: var(--color-success); }
+        .notification.error { border-color: var(--color-danger); }
+        .notification.reward { border-color: var(--color-energy); }
+        .notification.info { border-color: var(--color-primary); }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateY(-100%); }
+        }
+
+        /* Swap Modal */
+        .swap-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .swap-input-group {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .swap-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .swap-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: white;
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            outline: none;
+        }
+
+        .swap-input:focus { border-color: var(--color-primary); }
+
+        .swap-arrow {
+            font-size: 1.5rem;
+            color: var(--color-primary);
+        }
+
+        .swap-output {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--color-energy);
+        }
+
+        .swap-btn {
+            background: linear-gradient(135deg, var(--color-plasma), var(--color-secondary));
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 3rem;
+            color: white;
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .swap-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 30px rgba(170, 0, 255, 0.5);
+        }
+
+        .swap-balance {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(170, 0, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .swap-quick-btn {
+            flex: 1;
+            min-width: 60px;
+            background: rgba(170, 0, 255, 0.2);
+            border: 1px solid rgba(170, 0, 255, 0.5);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            color: #aa00ff;
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .swap-quick-btn:hover {
+            background: rgba(170, 0, 255, 0.3);
+            border-color: #aa00ff;
+            transform: translateY(-1px);
+        }
+
+        .swap-quick-btn:active {
+            transform: translateY(0);
+        }
+
+        .swap-direction-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .swap-direction-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .swap-direction-btn.active {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.3), rgba(170, 0, 255, 0.3));
+            border-color: var(--color-primary);
+            color: white;
+        }
+
+        .level-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 240, 255, 0.2);
+            border: 2px solid rgba(0, 240, 255, 0.5);
+            border-radius: 50%;
+            color: var(--color-primary);
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .level-btn:hover {
+            background: rgba(0, 240, 255, 0.3);
+            border-color: var(--color-primary);
+            transform: scale(1.1);
+        }
+
+        .level-btn:active {
+            transform: scale(0.95);
+        }
+
+        .level-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Purchase Options */
+        .purchase-option {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 204, 102, 0.15));
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .purchase-option:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.25), rgba(0, 204, 102, 0.25));
+            border-color: #00ffaa;
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .purchase-option:active {
+            transform: scale(0.98);
+        }
+
+        .purchase-amount {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+            font-family: var(--font-display);
+        }
+
+        .purchase-energy {
+            font-size: 1.2rem;
+            color: var(--color-energy);
+            font-family: var(--font-display);
+        }
+
+        /* Upgrade Panel */
+        .upgrade-panel { text-align: center; }
+
+        .current-module-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+
+        .current-module-icon {
+            font-size: 3rem;
+        }
+
+        .current-module-icon img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.4));
+        }
+
+        .current-module-info h3 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .current-module-info p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .upgrade-cost {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 1rem 0;
+        }
+
+        .upgrade-stat { text-align: center; }
+
+        .upgrade-stat-label {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+        }
+
+        .upgrade-stat-value {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .upgrade-btn {
+            background: linear-gradient(135deg, var(--color-primary), #0088ff);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 3rem;
+            color: white;
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upgrade-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 30px rgba(0, 240, 255, 0.5);
+        }
+
+        .upgrade-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Music Volume Slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #aa00ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(170, 0, 255, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(170, 0, 255, 0.8);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #aa00ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(170, 0, 255, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px rgba(170, 0, 255, 0.8);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .resource-panel { flex-direction: column; gap: 0.5rem; }
+            .module-grid { grid-template-columns: 1fr; }
+            .action-btn { padding: 0.6rem 1rem; font-size: 0.7rem; }
+            .loading-title { font-size: 2rem; }
+        }
+
+        /* Debug/Demo Panel */
+        /* Web3 Wallet Panel */
+        #wallet-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--color-panel);
+            border: 2px solid var(--color-panel-border);
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 100;
+            font-family: var(--font-body);
+            font-size: 14px;
+        }
+
+        #wallet-panel.connected {
+            border-color: var(--color-success);
+        }
+
+        .wallet-address {
+            color: var(--color-primary);
+            font-weight: bold;
+            word-break: break-all;
+            margin: 5px 0;
+        }
+
+        .wallet-network {
+            color: var(--color-energy);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        #connect-wallet-btn {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            color: var(--color-bg);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        #connect-wallet-btn:hover {
+            opacity: 0.9;
+        }
+
+        #connect-wallet-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Transaction Modal */
+        #tx-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--color-panel);
+            border: 2px solid var(--color-panel-border);
+            padding: 30px;
+            border-radius: 8px;
+            z-index: 200;
+            text-align: center;
+            display: none;
+            min-width: 300px;
+        }
+
+        #tx-modal.show {
+            display: block;
+        }
+
+        .tx-spinner {
+            border: 4px solid rgba(0, 240, 255, 0.2);
+            border-top: 4px solid var(--color-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tx-status {
+            margin: 15px 0;
+            color: var(--color-energy);
+            font-weight: bold;
+        }
+
+        .tx-hash {
+            color: var(--color-primary);
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        .tx-link {
+            color: var(--color-primary);
+            text-decoration: none;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        .tx-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Error Toast */
+        #error-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 68, 68, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 4px;
+            display: none;
+            z-index: 150;
+            max-width: 300px;
+        }
+
+        #error-toast.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <h1 class="loading-title">COSMIC YIELD</h1>
+        <div class="loading-bar-container">
+            <div class="loading-bar" id="loading-bar"></div>
+        </div>
+        <p class="loading-text" id="loading-text">Discovering planetary systems...</p>
+    </div>
+
+    <!-- Game Container -->
+    <div id="game-container"></div>
+
+    <!-- Web3 Wallet Panel -->
+    <div id="wallet-panel">
+        <div>🌐 Wallet</div>
+        <div class="wallet-address" id="wallet-address">Not Connected</div>
+        <div class="wallet-network" id="wallet-network">Network: Disconnected</div>
+        <button id="connect-wallet-btn">Connect Wallet</button>
+    </div>
+
+    <!-- Transaction Modal -->
+    <div id="tx-modal">
+        <div class="tx-spinner"></div>
+        <div class="tx-status" id="tx-status">Processing Transaction...</div>
+        <div class="tx-hash" id="tx-hash"></div>
+        <a class="tx-link" id="tx-link" target="_blank" href="#">View on BSCScan</a>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="error-toast">
+        <div id="error-message"></div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" style="display: none;">
+        <button class="purchase-btn" id="btn-purchase" onclick="openPurchaseModal()">
+            <span>+</span>
+            <span class="btn-label">Buy</span>
+        </button>
+        <div class="resource-panel energy-panel">
+            <div class="resource">
+                <div class="resource-icon energy">⚡</div>
+                <div class="resource-info">
+                    <span class="resource-label">Energy</span>
+                    <span class="resource-value energy" id="energy-value">0</span>
+                    <span class="production-rate" id="energy-rate">+0/hr</span>
+                </div>
+            </div>
+        </div>
+        <button class="sell-btn" id="btn-sell" onclick="openSellModal()">
+            <span>-</span>
+            <span class="btn-label">Sell</span>
+        </button>
+        <div class="resource-panel plasma-panel">
+            <div class="resource">
+                <div class="resource-icon plasma">💎</div>
+                <div class="resource-info">
+                    <span class="resource-label">Plasma</span>
+                    <span class="resource-value plasma" id="plasma-value">0</span>
+                    <span class="production-rate" id="plasma-rate">+0/hr</span>
+                </div>
+            </div>
+        </div>
+        <div class="stats-panel" style="display: none;">
+            <div class="commander-name" id="commander-name">Commander</div>
+            <div class="station-level" id="station-level">Station Lv. 1</div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="control-buttons">
+            <button class="control-btn" id="btn-music" title="Toggle Music">
+                <span class="control-icon">🎵</span>
+                <span class="control-label">Music</span>
+            </button>
+            <button class="control-btn" id="btn-sounds" title="Toggle Sound Effects">
+                <span class="control-icon">🔊</span>
+                <span class="control-label">Sounds</span>
+            </button>
+            <button class="control-btn exit-btn" id="btn-exit" title="Exit to Homepage">
+                <span class="control-icon">🚀</span>
+                <span class="control-label">Exit</span>
+            </button>
+        </div>
+
+        <!-- Version Label -->
+        <div class="version-label">TESTNET VERSION</div>
+    </div>
+
+    <!-- Bottom HUD -->
+    <div id="bottom-hud" style="display: none;">
+        <button class="action-btn build" id="btn-build">
+            <span>🪐</span> COLONIZE
+        </button>
+        <button class="action-btn raid" id="btn-raid">
+            <span>⚔️</span> RAID
+        </button>
+        <button class="action-btn swap" id="btn-swap">
+            <span>🔄</span> SWAP
+        </button>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications"></div>
+
+    <!-- Module Tooltip -->
+    <div id="module-tooltip" style="display: none; position: fixed; z-index: 10000; pointer-events: none;
+        background: rgba(0, 0, 0, 0.95); border: 3px solid #00f0ff; border-radius: 10px;
+        padding: 10px 18px; font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: bold;
+        color: #00f0ff; text-align: center; box-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+        transform: translate(-50%, -100%); margin-top: -10px; white-space: nowrap;">
+    </div>
+
+    <!-- Build Modal -->
+    <div class="modal-overlay" id="build-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🪐 Colonize Planet</h2>
+                <button class="modal-close" onclick="closeModal('build-modal')">&times;</button>
+            </div>
+            <div class="module-grid" id="module-grid"></div>
+        </div>
+    </div>
+
+    <!-- Raid Modal -->
+    <div class="modal-overlay" id="raid-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">⚔️ Spatial Raid</h2>
+                <button class="modal-close" onclick="closeModal('raid-modal')">&times;</button>
+            </div>
+            <div class="raid-panel">
+                <div class="raid-info">
+                    <p class="raid-description">Send your fleet to raid enemy stations. Higher risk = higher rewards!</p>
+                </div>
+                <div>
+                    <span class="win-chance-display"><span id="win-chance">50</span>%</span>
+                    <p style="font-size: 0.75rem; color: rgba(255,255,255,0.5);">WIN CHANCE</p>
+                </div>
+                <input type="range" class="win-chance-slider" id="win-chance-slider" min="40" max="60" value="50">
+                <div class="reward-preview">
+                    <span class="reward-label">Potential Reward</span>
+                    <div class="reward-value" id="raid-reward">⚡ 0</div>
+                </div>
+                <button class="raid-btn" id="raid-btn" onclick="executeRaid()">🚀 LAUNCH RAID</button>
+                <p class="cooldown-text" id="raid-cooldown" style="display: none;">Cooldown: <span id="cooldown-time">24:00:00</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Swap Modal -->
+    <div class="modal-overlay" id="swap-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">🔄 Swap Resources</h2>
+                <button class="modal-close" onclick="closeModal('swap-modal')">&times;</button>
+            </div>
+            <div class="swap-container">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="swap-direction-btn active" id="swap-dir-plasma" onclick="setSwapDirection('plasma')">💎 Plasma → ⚡ Energy (×2)</button>
+                    <button class="swap-direction-btn" id="swap-dir-energy" onclick="setSwapDirection('energy')">⚡ Energy → 💎 Plasma (×0.5)</button>
+                </div>
+
+                <div class="swap-balance">
+                    <span style="color: rgba(255,255,255,0.6); font-size: 0.85rem;" id="swap-available-label">Available Plasma</span>
+                    <div style="color: #aa00ff; font-size: 1.2rem; font-weight: bold;" id="swap-available-amount">💎 0</div>
+                </div>
+                <div class="swap-input-group">
+                    <label class="swap-label" id="swap-input-label">Plasma Amount</label>
+                    <input type="number" class="swap-input" id="swap-amount" placeholder="0" min="0">
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                        <button class="swap-quick-btn" onclick="setSwapAmount(0.25)">25%</button>
+                        <button class="swap-quick-btn" onclick="setSwapAmount(0.5)">50%</button>
+                        <button class="swap-quick-btn" onclick="setSwapAmount(0.75)">75%</button>
+                        <button class="swap-quick-btn" onclick="setSwapAmount(1)">MAX</button>
+                    </div>
+                </div>
+                <div class="swap-arrow">↓</div>
+                <div class="swap-input-group">
+                    <label class="swap-label" id="swap-output-label">You will receive</label>
+                    <div class="swap-output" id="swap-output">⚡ 0</div>
+                </div>
+                <button class="swap-btn" onclick="executeSwap()">SWAP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upgrade Modal -->
+    <div class="modal-overlay" id="upgrade-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">⬆️ Upgrade Planet</h2>
+                <button class="modal-close" onclick="closeModal('upgrade-modal')">&times;</button>
+            </div>
+            <div class="upgrade-panel">
+                <div class="current-module-display">
+                    <div class="current-module-icon" id="upgrade-module-icon">
+                        <img id="upgrade-module-img" src="" alt="Planet">
+                    </div>
+                    <div class="current-module-info">
+                        <h3 id="upgrade-module-name">Solar Generator</h3>
+                        <p id="upgrade-current-level">Current: Level 1</p>
+                    </div>
+                </div>
+
+                <div style="margin: 1.5rem 0;">
+                    <label style="display: block; text-align: center; color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 0.5rem;">Target Level</label>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+                        <button class="level-btn" onclick="adjustTargetLevel(-1)">−</button>
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--color-primary); min-width: 80px; text-align: center;" id="upgrade-target-level">2</div>
+                        <button class="level-btn" onclick="adjustTargetLevel(1)">+</button>
+                    </div>
+                    <div style="text-align: center; margin-top: 0.5rem; font-size: 0.75rem; color: rgba(255,255,255,0.5);" id="upgrade-levels-info">+1 level</div>
+                </div>
+
+                <div class="upgrade-cost">
+                    <div class="upgrade-stat">
+                        <div class="upgrade-stat-label">Total Cost</div>
+                        <div class="upgrade-stat-value" id="upgrade-cost" style="color: var(--color-energy);">⚡ 2,500</div>
+                    </div>
+                    <div class="upgrade-stat">
+                        <div class="upgrade-stat-label">Total Production Boost</div>
+                        <div class="upgrade-stat-value" id="upgrade-boost" style="color: var(--color-success);">+1/hr</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="upgrade-btn" id="upgrade-btn" onclick="executeUpgrade()" style="flex: 1; max-width: 200px;">⬆️ UPGRADE</button>
+                    <button class="upgrade-btn" id="move-btn" onclick="startMoveMode()" style="flex: 1; max-width: 200px; background: linear-gradient(135deg, #aa00ff, #7700cc);">📦 MOVE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div class="modal-overlay" id="purchase-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>💰 PURCHASE ENERGY</h2>
+                <button class="modal-close" onclick="closeModal('purchase-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="font-size: 1rem; color: #00ff88; margin-bottom: 0.5rem;">
+                        Rate: <strong>1 USDT = 1,000 Energy</strong> (BNB Chain)
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
+                    <button class="purchase-option" onclick="purchaseEnergy(10)" style="padding: 1rem;">
+                        <div class="purchase-amount" style="font-size: 1.2rem;">10 USDT</div>
+                        <div class="purchase-energy" style="font-size: 1rem;">⚡ 10K</div>
+                    </button>
+                    <button class="purchase-option" onclick="purchaseEnergy(50)" style="padding: 1rem;">
+                        <div class="purchase-amount" style="font-size: 1.2rem;">50 USDT</div>
+                        <div class="purchase-energy" style="font-size: 1rem;">⚡ 50K</div>
+                    </button>
+                    <button class="purchase-option" onclick="purchaseEnergy(100)" style="padding: 1rem;">
+                        <div class="purchase-amount" style="font-size: 1.2rem;">100 USDT</div>
+                        <div class="purchase-energy" style="font-size: 1rem;">⚡ 100K</div>
+                    </button>
+                    <button class="purchase-option" onclick="purchaseEnergy(500)" style="padding: 1rem;">
+                        <div class="purchase-amount" style="font-size: 1.2rem;">500 USDT</div>
+                        <div class="purchase-energy" style="font-size: 1rem;">⚡ 500K</div>
+                    </button>
+                </div>
+
+                <div style="padding: 1rem; background: rgba(0, 255, 136, 0.1); border: 2px solid #00ff88; border-radius: 12px;">
+                    <div style="font-size: 0.9rem; color: #00ff88; margin-bottom: 0.75rem; font-weight: bold; text-align: center;">
+                        Custom amount (min. 10 USDT)
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" id="custom-usdt-amount" min="10" step="1" placeholder="10"
+                            style="flex: 1; padding: 0.75rem; font-size: 1rem; background: rgba(0,0,0,0.5); border: 2px solid #00ff88;
+                            border-radius: 8px; color: #fff; font-family: 'Orbitron', sans-serif; text-align: center;">
+                        <button class="upgrade-btn" onclick="purchaseCustomAmount()"
+                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #00ff88, #00cc66); white-space: nowrap;">
+                            BUY
+                        </button>
+                    </div>
+                    <div id="custom-energy-preview" style="text-align: center; margin-top: 0.75rem; font-size: 1rem; color: var(--color-energy); font-weight: bold;">
+                        = ⚡ 0 Energy
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sell Modal -->
+    <div class="modal-overlay" id="sell-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>💵 SELL PLASMA</h2>
+                <button class="modal-close" onclick="closeModal('sell-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="font-size: 1rem; color: #ff8800; margin-bottom: 0.5rem;">
+                        Rate: <strong>1,000 Plasma = 1 USDT</strong> (BNB Chain)
+                    </div>
+                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">
+                        Your Plasma: <span id="sell-plasma-balance" style="color: var(--color-plasma); font-weight: bold;">0</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
+                    <button class="purchase-option" onclick="sellPlasma(1000)" style="padding: 1rem; border-color: #ff8800;">
+                        <div class="purchase-amount" style="font-size: 1.2rem; color: #ff8800;">💎 1K</div>
+                        <div class="purchase-energy" style="font-size: 1rem; color: #00ff88;">= 1 USDT</div>
+                    </button>
+                    <button class="purchase-option" onclick="sellPlasma(50000)" style="padding: 1rem; border-color: #ff8800;">
+                        <div class="purchase-amount" style="font-size: 1.2rem; color: #ff8800;">💎 50K</div>
+                        <div class="purchase-energy" style="font-size: 1rem; color: #00ff88;">= 50 USDT</div>
+                    </button>
+                    <button class="purchase-option" onclick="sellPlasma(100000)" style="padding: 1rem; border-color: #ff8800;">
+                        <div class="purchase-amount" style="font-size: 1.2rem; color: #ff8800;">💎 100K</div>
+                        <div class="purchase-energy" style="font-size: 1rem; color: #00ff88;">= 100 USDT</div>
+                    </button>
+                    <button class="purchase-option" onclick="sellPlasma(500000)" style="padding: 1rem; border-color: #ff8800;">
+                        <div class="purchase-amount" style="font-size: 1.2rem; color: #ff8800;">💎 500K</div>
+                        <div class="purchase-energy" style="font-size: 1rem; color: #00ff88;">= 500 USDT</div>
+                    </button>
+                </div>
+
+                <div style="padding: 1rem; background: rgba(255, 136, 0, 0.1); border: 2px solid #ff8800; border-radius: 12px;">
+                    <div style="font-size: 0.9rem; color: #ff8800; margin-bottom: 0.75rem; font-weight: bold; text-align: center;">
+                        Custom amount (min. 1,000 Plasma)
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" id="custom-plasma-amount" min="1000" step="1000" placeholder="1000"
+                            style="flex: 1; padding: 0.75rem; font-size: 1rem; background: rgba(0,0,0,0.5); border: 2px solid #ff8800;
+                            border-radius: 8px; color: #fff; font-family: 'Orbitron', sans-serif; text-align: center;">
+                        <button class="upgrade-btn" onclick="sellCustomAmount()"
+                            style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ff8800, #ff6600); white-space: nowrap;">
+                            SELL
+                        </button>
+                    </div>
+                    <div id="custom-usdt-preview" style="text-align: center; margin-top: 0.75rem; font-size: 1rem; color: #00ff88; font-weight: bold;">
+                        = 0 USDT
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal removed - controls moved to bottom-left buttons -->
+
+    <!-- Phaser 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+
+    <!-- Game Scripts -->
+    <script>
+// ============================================
+// COSMIC YIELD - Game Configuration (TOP-DOWN)
+// ============================================
+
+const GAME_CONFIG = {
+    // Grid settings (TOP-DOWN: square tiles instead of isometric)
+    GRID: {
+        COLS: 20,
+        ROWS: 18,
+        TILE_SIZE: 80,     // Square tiles 80x80px (larger for better visibility)
+        TOTAL_TILES: 360
+    },
+
+    // Module definitions (Planet-themed)
+    MODULES: [
+        {
+            id: 1,
+            name: "Mercury",
+            icon: "🔋",
+            sprite: "planet01.png",
+            description: "Rocky volcanic planet",
+            cost: 10000,
+            perHour: 4,
+            color: 0xff6b35
+        },
+        {
+            id: 2,
+            name: "Venus",
+            icon: "🌱",
+            sprite: "planet02.png",
+            description: "Toxic atmosphere world",
+            cost: 28000,
+            perHour: 12,
+            color: 0xf7931e
+        },
+        {
+            id: 3,
+            name: "Earth",
+            icon: "⚙️",
+            sprite: "planet03.png",
+            description: "Blue water planet",
+            cost: 54000,
+            perHour: 24,
+            color: 0x4a90e2
+        },
+        {
+            id: 4,
+            name: "Mars",
+            icon: "🔬",
+            sprite: "planet04.png",
+            description: "Red desert world",
+            cost: 100000,
+            perHour: 48,
+            color: 0xdc143c
+        },
+        {
+            id: 5,
+            name: "Jupiter",
+            icon: "🤖",
+            sprite: "planet05.png",
+            description: "Giant gas planet",
+            cost: 250000,
+            perHour: 124,
+            color: 0xc88b3a
+        },
+        {
+            id: 6,
+            name: "Saturn",
+            icon: "🚀",
+            sprite: "planet06.png",
+            description: "Ringed gas giant",
+            cost: 500000,
+            perHour: 260,
+            color: 0xfad5a5
+        },
+        {
+            id: 7,
+            name: "Uranus",
+            icon: "☢️",
+            sprite: "planet07.png",
+            description: "Ice giant world",
+            cost: 1000000,
+            perHour: 550,
+            color: 0x4fd5d6
+        },
+        {
+            id: 8,
+            name: "Neptune",
+            icon: "🌟",
+            sprite: "planet08.png",
+            description: "Deep blue ice giant",
+            cost: 2000000,
+            perHour: 1150,
+            color: 0x4169e1
+        }
+    ],
+
+    // Upgrade system
+    UPGRADE: {
+        MAX_LEVEL: 9,
+        COST_DIVISOR: 4,
+        PERHOUR_DIVISOR: 4
+    },
+
+    // Battle/Raid system
+    RAID: {
+        MIN_WIN_CHANCE: 40,
+        MAX_WIN_CHANCE: 60,
+        COOLDOWN_HOURS: 24,
+        WIN_MULTIPLIER: 16,
+        LOSE_MULTIPLIER: 8,
+        FIRST_RAID_GUARANTEED: true
+    },
+
+    // Swap system
+    SWAP: {
+        PLASMA_TO_ENERGY_RATE: 2,
+        ENERGY_TO_PLASMA_RATE: 0.5  // 1 Energy = 0.5 Plasma
+    },
+
+    // Production collection
+    PRODUCTION: {
+        COLLECT_INTERVAL: 3600
+    },
+
+    // Starting resources
+    DEMO: {
+        STARTING_ENERGY: 50000,
+        STARTING_PLASMA: 0,
+        COMMANDER_NAME: "Commander"
+    },
+
+    // Visual settings
+    VISUALS: {
+        STAR_COUNT: 200,
+        NEBULA_COLORS: [0x4400aa, 0x0044aa, 0xaa0044],
+        GRID_COLOR: 0x1a1a3a,
+        GRID_HOVER_COLOR: 0x00f0ff,
+        GRID_VALID_COLOR: 0x00ff88,
+        GRID_INVALID_COLOR: 0xff4444
+    }
+};
+
+// Helper functions for game calculations
+const GameHelpers = {
+    // Get module stats by level
+    getModuleStats(moduleId) {
+        return GAME_CONFIG.MODULES.find(m => m.id === moduleId);
+    },
+
+    // Calculate upgrade cost
+    getUpgradeCost(moduleId) {
+        const module = this.getModuleStats(moduleId);
+        if (!module) return 0;
+        return Math.floor(module.cost / GAME_CONFIG.UPGRADE.COST_DIVISOR);
+    },
+
+    // Calculate upgrade perHour boost
+    getUpgradePerHour(moduleId) {
+        const module = this.getModuleStats(moduleId);
+        if (!module) return 0;
+        return Math.floor(module.perHour / GAME_CONFIG.UPGRADE.PERHOUR_DIVISOR);
+    },
+
+    // Calculate total perHour for a module with upgrades
+    getModulePerHour(moduleId, upgrades = 0) {
+        const module = this.getModuleStats(moduleId);
+        if (!module) return 0;
+
+        const basePerHour = module.perHour;
+        const upgradeBoost = this.getUpgradePerHour(moduleId);
+        return basePerHour + (upgradeBoost * upgrades);
+    },
+
+    // Calculate raid reward
+    calculateRaidReward(perHour, winChance, isWin) {
+        if (isWin) {
+            return Math.floor((perHour * GAME_CONFIG.RAID.WIN_MULTIPLIER * 50) / winChance);
+        } else {
+            return perHour * GAME_CONFIG.RAID.LOSE_MULTIPLIER;
+        }
+    },
+
+    // Format number with commas
+    formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    },
+
+    // Format time remaining
+    formatTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    },
+
+    // Convert grid coordinates to screen coordinates (TOP-DOWN)
+    gridToScreen(col, row, offsetX = 0, offsetY = 0) {
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+        return {
+            x: col * tileSize + offsetX,
+            y: row * tileSize + offsetY
+        };
+    },
+
+    // Convert screen to grid coordinates (TOP-DOWN)
+    screenToGrid(x, y, offsetX = 0, offsetY = 0) {
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+        return {
+            col: Math.floor((x - offsetX) / tileSize),
+            row: Math.floor((y - offsetY) / tileSize)
+        };
+    },
+
+    // Check if tile coordinates are valid
+    isValidTile(col, row) {
+        return col >= 0 && col < GAME_CONFIG.GRID.COLS &&
+               row >= 0 && row < GAME_CONFIG.GRID.ROWS;
+    },
+
+    // Get tile index from coordinates
+    getTileIndex(col, row) {
+        return row * GAME_CONFIG.GRID.COLS + col;
+    },
+
+    // Get coordinates from tile index
+    getTileCoords(index) {
+        return {
+            col: index % GAME_CONFIG.GRID.COLS,
+            row: Math.floor(index / GAME_CONFIG.GRID.COLS)
+        };
+    }
+};
+
+// Make available globally
+window.GAME_CONFIG = GAME_CONFIG;
+window.GameHelpers = GameHelpers;
+</script>
+
+<script>
+// ============================================
+// COSMIC YIELD - Game Manager
+// ============================================
+
+class GameManager {
+    constructor() {
+        this.energy = 0;
+        this.plasma = 0;
+        this.perHour = 0;
+        this.modules = new Array(GAME_CONFIG.GRID.TOTAL_TILES).fill(0);
+        this.lastCollectTime = 0;
+        this.lastRaidTime = 0;
+        this.raidsCompleted = 0;
+        this.commanderName = GAME_CONFIG.DEMO.COMMANDER_NAME;
+        this.isPlacingModule = false;
+        this.selectedModuleId = null;
+        this.selectedTileIndex = null;
+
+        this.load();
+        this.startProductionLoop();
+    }
+
+    // ==========================================
+    // SAVE / LOAD SYSTEM
+    // ==========================================
+
+    save() {
+        const saveData = {
+            energy: this.energy,
+            plasma: this.plasma,
+            perHour: this.perHour,
+            modules: this.modules,
+            lastCollectTime: this.lastCollectTime,
+            lastRaidTime: this.lastRaidTime,
+            raidsCompleted: this.raidsCompleted,
+            commanderName: this.commanderName
+        };
+        localStorage.setItem('cosmicYield_save', JSON.stringify(saveData));
+    }
+
+    load() {
+        const saved = localStorage.getItem('cosmicYield_save');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                this.energy = data.energy || 0;
+                this.plasma = data.plasma || 0;
+                this.perHour = data.perHour || 0;
+
+                // Load modules with proper size handling
+                if (data.modules && Array.isArray(data.modules)) {
+                    // If saved array is wrong size, resize it
+                    if (data.modules.length !== GAME_CONFIG.GRID.TOTAL_TILES) {
+                        console.warn(`Module array size mismatch: ${data.modules.length} vs ${GAME_CONFIG.GRID.TOTAL_TILES}. Resizing...`);
+                        this.modules = new Array(GAME_CONFIG.GRID.TOTAL_TILES).fill(0);
+                        // Copy old data up to the minimum of the two sizes
+                        const copyLength = Math.min(data.modules.length, GAME_CONFIG.GRID.TOTAL_TILES);
+                        for (let i = 0; i < copyLength; i++) {
+                            this.modules[i] = data.modules[i];
+                        }
+                    } else {
+                        this.modules = data.modules;
+                    }
+                } else {
+                    this.modules = new Array(GAME_CONFIG.GRID.TOTAL_TILES).fill(0);
+                }
+
+                this.lastCollectTime = data.lastCollectTime || Date.now();
+                this.lastRaidTime = data.lastRaidTime || 0;
+                this.raidsCompleted = data.raidsCompleted || 0;
+                this.commanderName = data.commanderName || GAME_CONFIG.DEMO.COMMANDER_NAME;
+
+                this.collectProduction();
+            } catch (e) {
+                console.error('Failed to load save:', e);
+                this.initNewGame();
+            }
+        } else {
+            this.initNewGame();
+        }
+    }
+
+    initNewGame() {
+        this.energy = GAME_CONFIG.DEMO.STARTING_ENERGY;
+        this.plasma = GAME_CONFIG.DEMO.STARTING_PLASMA;
+        this.perHour = 0;
+        this.modules = new Array(GAME_CONFIG.GRID.TOTAL_TILES).fill(0);
+        this.lastCollectTime = Date.now();
+        this.lastRaidTime = 0;
+        this.raidsCompleted = 0;
+        this.commanderName = GAME_CONFIG.DEMO.COMMANDER_NAME;
+        this.save();
+    }
+
+    resetGame() {
+        localStorage.removeItem('cosmicYield_save');
+        this.initNewGame();
+        this.updateUI();
+        if (window.gameScene) {
+            window.gameScene.rebuildAllModules();
+        }
+        showNotification('Game reset!', 'success');
+    }
+
+    // ==========================================
+    // PRODUCTION SYSTEM
+    // ==========================================
+
+    startProductionLoop() {
+        // Production en temps réel : mise à jour toutes les 100ms pour un effet fluide
+        setInterval(() => {
+            this.collectProduction();
+            this.updateUI();
+        }, 100);
+
+        // Sauvegarde toutes les 5 secondes pour ne pas surcharger
+        setInterval(() => {
+            this.save();
+        }, 5000);
+    }
+
+    collectProduction() {
+        if (this.perHour === 0) return;
+
+        const now = Date.now();
+        const elapsed = now - this.lastCollectTime;
+
+        // Production continue: calculer par milliseconde
+        const perMs = this.perHour / 3600000; // perHour / (1000ms * 60s * 60min)
+        const earned = elapsed * perMs;
+
+        this.energy = Math.min(this.energy + earned, 4294967295);
+        this.plasma = Math.min(this.plasma + earned, 4294967295);
+        this.lastCollectTime = now;
+    }
+
+    // ==========================================
+    // MODULE BUILDING SYSTEM
+    // ==========================================
+
+    canBuildModule(moduleId) {
+        const module = GameHelpers.getModuleStats(moduleId);
+        return this.energy >= module.cost;
+    }
+
+    buildModule(tileIndex, moduleId) {
+        if (!this.canBuildModule(moduleId)) {
+            showNotification('Not enough energy!', 'error');
+            return false;
+        }
+
+        if (this.modules[tileIndex] !== 0) {
+            showNotification('Tile is not empty!', 'error');
+            return false;
+        }
+
+        const module = GameHelpers.getModuleStats(moduleId);
+
+        this.energy -= module.cost;
+        this.modules[tileIndex] = moduleId;
+        this.perHour += module.perHour;
+
+        // Jouer le son de colonisation
+        GameSounds.play('colonize');
+
+        this.save();
+        this.updateUI();
+
+        showNotification(`${module.name} built! +${module.perHour}/hr`, 'success');
+        return true;
+    }
+
+    // ==========================================
+    // UPGRADE SYSTEM
+    // ==========================================
+
+    getModuleData(tileIndex) {
+        const value = this.modules[tileIndex];
+        if (value === 0) return null;
+
+        const level = value % 10;
+        const upgrades = Math.floor(value / 10);
+
+        return {
+            level,
+            upgrades,
+            module: GameHelpers.getModuleStats(level)
+        };
+    }
+
+    canUpgradeModule(tileIndex) {
+        const data = this.getModuleData(tileIndex);
+        if (!data) return false;
+        if (data.upgrades >= GAME_CONFIG.UPGRADE.MAX_LEVEL) return false;
+
+        const upgradeCost = GameHelpers.getUpgradeCost(data.level);
+        return this.energy >= upgradeCost;
+    }
+
+    upgradeModule(tileIndex) {
+        const data = this.getModuleData(tileIndex);
+        if (!data) {
+            showNotification('No module to upgrade!', 'error');
+            return false;
+        }
+
+        if (data.upgrades >= GAME_CONFIG.UPGRADE.MAX_LEVEL) {
+            showNotification('Max upgrades reached!', 'error');
+            return false;
+        }
+
+        const upgradeCost = GameHelpers.getUpgradeCost(data.level);
+        if (this.energy < upgradeCost) {
+            showNotification('Not enough energy!', 'error');
+            return false;
+        }
+
+        const upgradePerHour = GameHelpers.getUpgradePerHour(data.level);
+
+        this.energy -= upgradeCost;
+        this.modules[tileIndex] = (data.upgrades + 1) * 10 + data.level;
+        this.perHour += upgradePerHour;
+
+        this.save();
+        this.updateUI();
+
+        showNotification(`Upgraded to level ${data.upgrades + 2}! +${upgradePerHour}/hr`, 'success');
+        return true;
+    }
+
+    // ==========================================
+    // RAID SYSTEM
+    // ==========================================
+
+    canRaid() {
+        if (this.perHour === 0) return { can: false, reason: 'Build modules first!' };
+
+        const now = Date.now();
+        const cooldownMs = GAME_CONFIG.RAID.COOLDOWN_HOURS * 3600000;
+        const timeSinceRaid = now - this.lastRaidTime;
+
+        if (timeSinceRaid < cooldownMs && this.raidsCompleted > 0) {
+            const remaining = cooldownMs - timeSinceRaid;
+            return {
+                can: false,
+                reason: 'Cooldown active',
+                cooldownRemaining: remaining
+            };
+        }
+
+        return { can: true };
+    }
+
+    executeRaid(winChance) {
+        const canRaid = this.canRaid();
+        if (!canRaid.can) {
+            showNotification(canRaid.reason, 'error');
+            return null;
+        }
+
+        let isWin;
+        if (this.raidsCompleted === 0 && GAME_CONFIG.RAID.FIRST_RAID_GUARANTEED) {
+            isWin = true;
+        } else {
+            const roll = Math.floor(Math.random() * 100) + 1;
+            isWin = roll <= winChance;
+        }
+
+        const reward = GameHelpers.calculateRaidReward(this.perHour, winChance, isWin);
+
+        this.energy += reward;
+        this.lastRaidTime = Date.now();
+        this.raidsCompleted++;
+
+        this.save();
+        this.updateUI();
+
+        return { isWin, reward };
+    }
+
+    getRaidCooldownRemaining() {
+        const now = Date.now();
+        const cooldownMs = GAME_CONFIG.RAID.COOLDOWN_HOURS * 3600000;
+        const timeSinceRaid = now - this.lastRaidTime;
+
+        if (this.raidsCompleted === 0) return 0;
+
+        const remaining = cooldownMs - timeSinceRaid;
+        return Math.max(0, remaining);
+    }
+
+    // ==========================================
+    // SWAP SYSTEM
+    // ==========================================
+
+    canSwap(plasmaAmount) {
+        return plasmaAmount > 0 && this.plasma >= plasmaAmount;
+    }
+
+    swapPlasmaToEnergy(plasmaAmount) {
+        if (!this.canSwap(plasmaAmount)) {
+            showNotification('Not enough plasma!', 'error');
+            return false;
+        }
+
+        const energyGained = plasmaAmount * GAME_CONFIG.SWAP.PLASMA_TO_ENERGY_RATE;
+
+        this.plasma -= plasmaAmount;
+        this.energy += energyGained;
+
+        this.save();
+        this.updateUI();
+
+        showNotification(`Swapped ${GameHelpers.formatNumber(plasmaAmount)} plasma for ${GameHelpers.formatNumber(energyGained)} energy!`, 'success');
+        return true;
+    }
+
+    // ==========================================
+    // MODULE MOVEMENT
+    // ==========================================
+
+    moveModule(fromIndex, toIndex) {
+        // Vérifier que les indices sont valides
+        if (fromIndex < 0 || fromIndex >= GAME_CONFIG.GRID.TOTAL_TILES ||
+            toIndex < 0 || toIndex >= GAME_CONFIG.GRID.TOTAL_TILES) {
+            return false;
+        }
+
+        // Vérifier qu'il y a un module à déplacer
+        if (this.modules[fromIndex] === 0) {
+            return false;
+        }
+
+        // Vérifier que la destination est vide
+        if (this.modules[toIndex] !== 0) {
+            showNotification('Destination tile is occupied!', 'error');
+            return false;
+        }
+
+        // Déplacer le module
+        this.modules[toIndex] = this.modules[fromIndex];
+        this.modules[fromIndex] = 0;
+
+        this.save();
+        showNotification('Module moved!', 'success');
+        return true;
+    }
+
+    // ==========================================
+    // STATION STATS
+    // ==========================================
+
+    getStationLevel() {
+        let totalModules = 0;
+        let totalUpgrades = 0;
+
+        for (let i = 0; i < this.modules.length; i++) {
+            if (this.modules[i] > 0) {
+                totalModules++;
+                totalUpgrades += Math.floor(this.modules[i] / 10);
+            }
+        }
+
+        return Math.floor((totalModules + totalUpgrades) / 5) + 1;
+    }
+
+    getModuleCount() {
+        return this.modules.filter(m => m > 0).length;
+    }
+
+    // ==========================================
+    // UI UPDATE
+    // ==========================================
+
+    updateUI() {
+        // Affichage avec 2 décimales pour montrer l'augmentation continue
+        const energyEl = document.getElementById('energy-value');
+        const plasmaEl = document.getElementById('plasma-value');
+
+        // Toujours afficher avec 4 décimales pour voir l'augmentation en temps réel
+        const formatLive = (value) => {
+            const parts = value.toFixed(4).split('.');
+            // Ajouter des espaces comme séparateurs de milliers
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+            return parts.join('.');
+        };
+
+        energyEl.textContent = formatLive(this.energy);
+        plasmaEl.textContent = formatLive(this.plasma);
+
+        // Ajouter une classe pour l'animation
+        energyEl.classList.add('value-updating');
+        plasmaEl.classList.add('value-updating');
+        setTimeout(() => {
+            energyEl.classList.remove('value-updating');
+            plasmaEl.classList.remove('value-updating');
+        }, 100);
+
+        document.getElementById('energy-rate').textContent = `+${GameHelpers.formatNumber(this.perHour)}/hr`;
+        document.getElementById('plasma-rate').textContent = `+${GameHelpers.formatNumber(this.perHour)}/hr`;
+
+        document.getElementById('commander-name').textContent = this.commanderName;
+        document.getElementById('station-level').textContent = `Station Lv. ${this.getStationLevel()} • ${this.getModuleCount()} modules`;
+
+        const winChance = parseInt(document.getElementById('win-chance-slider')?.value || 50);
+        const potentialReward = GameHelpers.calculateRaidReward(this.perHour, winChance, true);
+        const raidRewardEl = document.getElementById('raid-reward');
+        if (raidRewardEl) {
+            raidRewardEl.textContent = `⚡ ${GameHelpers.formatNumber(potentialReward)}`;
+        }
+
+        this.updateRaidCooldown();
+        this.updateBuildMenu();
+    }
+
+    updateRaidCooldown() {
+        const cooldownEl = document.getElementById('raid-cooldown');
+        const cooldownTimeEl = document.getElementById('cooldown-time');
+        const raidBtn = document.getElementById('raid-btn');
+
+        const remaining = this.getRaidCooldownRemaining();
+
+        if (remaining > 0) {
+            cooldownEl.style.display = 'block';
+            cooldownTimeEl.textContent = GameHelpers.formatTime(remaining / 1000);
+            raidBtn.disabled = true;
+        } else {
+            cooldownEl.style.display = 'none';
+            raidBtn.disabled = this.perHour === 0;
+        }
+    }
+
+    updateBuildMenu() {
+        const grid = document.getElementById('module-grid');
+        if (!grid) return;
+
+        // Ne mettre à jour QUE si le menu est visible (modal ouverte)
+        const modal = document.getElementById('build-modal');
+        if (!modal || !modal.classList.contains('active')) {
+            return; // Modal fermée, ne pas mettre à jour
+        }
+
+        // Mettre à jour UNIQUEMENT les classes et attributs, PAS tout le HTML
+        const cards = grid.querySelectorAll('.module-card');
+        GAME_CONFIG.MODULES.forEach((module, index) => {
+            const card = cards[index];
+            if (!card) return;
+
+            const canAfford = this.energy >= module.cost;
+            const currentCanAfford = card.dataset.canAfford === 'true';
+
+            // Mettre à jour SEULEMENT si l'état a changé
+            if (canAfford !== currentCanAfford) {
+                card.dataset.canAfford = canAfford;
+                if (canAfford) {
+                    card.classList.remove('disabled');
+                } else {
+                    card.classList.add('disabled');
+                }
+            }
+        });
+    }
+
+    // Nouvelle fonction pour construire le menu initial (appelée UNE SEULE FOIS)
+    buildInitialMenu() {
+        const grid = document.getElementById('module-grid');
+        if (!grid) return;
+
+        grid.innerHTML = GAME_CONFIG.MODULES.map(module => {
+            const canAfford = this.energy >= module.cost;
+            return `
+                <div class="module-card ${canAfford ? '' : 'disabled'}"
+                     data-module-id="${module.id}"
+                     data-can-afford="${canAfford}">
+                    <div class="module-icon">
+                        <img src="kenney_planets/Planets/${module.sprite}" alt="${module.name}">
+                    </div>
+                    <div class="module-name">${module.name}</div>
+                    <div class="module-stats">+${module.perHour}/hr production</div>
+                    <div class="module-cost">⚡ ${GameHelpers.formatNumber(module.cost)}</div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
+// ==========================================
+// GLOBAL UI FUNCTIONS
+// ==========================================
+
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notifications');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    container.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+function openModal(modalId) {
+    GameSounds.play('click');
+    document.getElementById(modalId).classList.add('active');
+
+    // Initialiser le build modal - construire le menu UNE SEULE FOIS
+    if (modalId === 'build-modal' && window.gameManager) {
+        window.gameManager.buildInitialMenu();
+    }
+
+    // Initialiser le swap modal
+    if (modalId === 'swap-modal' && window.gameManager) {
+        swapDirection = 'plasma';
+        setSwapDirection('plasma');
+    }
+
+    // Désactiver l'input Phaser pour éviter les clics sur la grille
+    if (window.gameScene) {
+        window.gameScene.input.enabled = false;
+        window.gameScene.isDragging = false;
+        window.gameScene.hasDragged = false;
+    }
+}
+
+function closeModal(modalId) {
+    GameSounds.play('click');
+    document.getElementById(modalId).classList.remove('active');
+
+    // Réactiver l'input Phaser et réinitialiser l'état du drag
+    if (window.gameScene) {
+        window.gameScene.input.enabled = true;
+        window.gameScene.isDragging = false;
+        window.gameScene.hasDragged = false;
+    }
+}
+
+function openPurchaseModal() {
+    GameSounds.play('click');
+    openModal('purchase-modal');
+}
+
+function openSellModal() {
+    GameSounds.play('click');
+    // Mettre à jour le solde de plasma
+    const plasmaBalance = document.getElementById('sell-plasma-balance');
+    if (plasmaBalance && window.gameManager) {
+        plasmaBalance.textContent = GameHelpers.formatNumber(Math.floor(window.gameManager.plasma));
+    }
+    openModal('sell-modal');
+}
+
+async function sellPlasma(plasmaAmount) {
+    if (!window.gameManager) return;
+
+    GameSounds.play('click');
+
+    // Vérifier montant minimum
+    if (plasmaAmount < 1000) {
+        showNotification('Minimum sell amount is 1,000 Plasma', 'error');
+        return;
+    }
+
+    // Vérifier si le joueur a assez de plasma
+    if (window.gameManager.plasma < plasmaAmount) {
+        showNotification('Not enough Plasma!', 'error');
+        return;
+    }
+
+    // Check wallet connection
+    if (!window.web3Manager || !window.web3Manager.userAddress) {
+        showNotification('Please connect your wallet first', 'error');
+        return;
+    }
+
+    try {
+        const result = await window.web3Manager.sellPlasma(plasmaAmount);
+        if (result && result.status === 1) {
+            showNotification(`✓ Successfully sold ${plasmaAmount.toLocaleString()} Plasma!`, 'success');
+        }
+    } catch (error) {
+        console.error('Sell error:', error);
+        showNotification(`Sale failed: ${error.message}`, 'error');
+    }
+}
+
+async function sellCustomAmount() {
+    GameSounds.play('click');
+    const input = document.getElementById('custom-plasma-amount');
+    const amount = parseFloat(input.value);
+
+    if (!amount || amount < 1000) {
+        showNotification('Please enter a valid amount (min. 1,000 Plasma)', 'error');
+        return;
+    }
+
+    await sellPlasma(Math.floor(amount));
+}
+
+async function purchaseEnergy(usdtAmount) {
+    GameSounds.play('click');
+    // Vérifier montant minimum
+    if (usdtAmount < 10) {
+        showNotification('Minimum purchase amount is 10 USDT', 'error');
+        return;
+    }
+
+    // Check wallet connection
+    if (!window.web3Manager || !window.web3Manager.userAddress) {
+        showNotification('Please connect your wallet first', 'error');
+        return;
+    }
+
+    // Convert USDT amount to wei (USDT has 6 decimals)
+    const usdtWei = BigInt(usdtAmount) * BigInt(10 ** 6);
+
+    try {
+        const result = await window.web3Manager.buyEnergy(usdtWei);
+        if (result && result.status === 1) {
+            showNotification(`✓ Successfully purchased ${(usdtAmount * 1000).toLocaleString()} Energy!`, 'success');
+        }
+    } catch (error) {
+        console.error('Purchase error:', error);
+        showNotification(`Purchase failed: ${error.message}`, 'error');
+    }
+}
+
+async function purchaseCustomAmount() {
+    GameSounds.play('click');
+    const input = document.getElementById('custom-usdt-amount');
+    const amount = parseFloat(input.value);
+
+    if (!amount || amount < 10) {
+        showNotification('Please enter a valid amount (min. 10 USDT)', 'error');
+        return;
+    }
+
+    await purchaseEnergy(Math.floor(amount));
+}
+
+// ========================================
+// SOUND SYSTEM
+// ========================================
+const GameSounds = {
+    sounds: {},
+    music: null,
+    enabled: true,
+    musicEnabled: true,
+    musicVolume: 0.23,
+
+    init() {
+        this.sounds.raid = new Audio('sounds/raid.ogg');
+        this.sounds.swap = new Audio('sounds/switch_swap.ogg');
+        this.sounds.colonize = new Audio('sounds/colonize.ogg');
+        this.sounds.upgrade = new Audio('sounds/upgrade.ogg');
+        this.sounds.click = new Audio('sounds/mouseclick1.ogg');
+
+        // Initialiser la musique de fond
+        this.music = new Audio('sounds/Orbital-Drift.ogg');
+        this.music.loop = true;
+
+        // Charger l'état des sons depuis localStorage
+        const soundState = localStorage.getItem('soundEnabled');
+        this.enabled = soundState === null ? true : soundState === 'true';
+
+        const musicState = localStorage.getItem('musicEnabled');
+        this.musicEnabled = musicState === null ? true : musicState === 'true';
+
+        const musicVol = localStorage.getItem('musicVolume');
+        this.musicVolume = musicVol === null ? 0.23 : parseFloat(musicVol);
+
+        // Précharger les sons
+        Object.values(this.sounds).forEach(sound => {
+            sound.volume = 0.5; // Volume à 50%
+            sound.load();
+        });
+
+        // Configurer la musique
+        this.music.volume = this.musicVolume;
+
+        // Tenter de démarrer la musique immédiatement
+        if (this.musicEnabled) {
+            this.playMusic();
+        }
+
+        // Démarrer la musique à la première interaction utilisateur (pour contourner les restrictions d'autoplay)
+        const startMusicOnInteraction = () => {
+            if (this.musicEnabled && this.music && this.music.paused) {
+                this.playMusic();
+            }
+            // Retirer les listeners après la première interaction
+            document.removeEventListener('click', startMusicOnInteraction);
+            document.removeEventListener('keydown', startMusicOnInteraction);
+            document.removeEventListener('touchstart', startMusicOnInteraction);
+        };
+
+        document.addEventListener('click', startMusicOnInteraction);
+        document.addEventListener('keydown', startMusicOnInteraction);
+        document.addEventListener('touchstart', startMusicOnInteraction);
+    },
+
+    play(soundName) {
+        if (!this.enabled) return;
+        if (this.sounds[soundName]) {
+            // Cloner le son pour permettre plusieurs lectures simultanées
+            const sound = this.sounds[soundName].cloneNode();
+            sound.volume = 0.5;
+            sound.play().catch(err => console.log('Audio play failed:', err));
+        }
+
+        // Essayer de démarrer la musique si elle n'est pas encore lancée
+        if (this.musicEnabled && this.music && this.music.paused) {
+            this.playMusic();
+        }
+    },
+
+    toggle() {
+        this.enabled = !this.enabled;
+        localStorage.setItem('soundEnabled', this.enabled);
+        return this.enabled;
+    },
+
+    playMusic() {
+        if (this.music && this.musicEnabled) {
+            this.music.play().catch(err => console.log('Music play failed:', err));
+        }
+    },
+
+    pauseMusic() {
+        if (this.music) {
+            this.music.pause();
+        }
+    },
+
+    toggleMusic() {
+        this.musicEnabled = !this.musicEnabled;
+        localStorage.setItem('musicEnabled', this.musicEnabled);
+
+        if (this.musicEnabled) {
+            this.playMusic();
+        } else {
+            this.pauseMusic();
+        }
+
+        return this.musicEnabled;
+    },
+
+    setMusicVolume(volume) {
+        this.musicVolume = volume;
+        if (this.music) {
+            this.music.volume = volume;
+        }
+        localStorage.setItem('musicVolume', volume);
+    }
+};
+
+// Mettre à jour la preview quand l'utilisateur tape
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialiser le système de sons
+    GameSounds.init();
+
+    // Control Buttons - Music, Sounds, Exit
+    const btnMusic = document.getElementById('btn-music');
+    const btnSounds = document.getElementById('btn-sounds');
+    const btnExit = document.getElementById('btn-exit');
+
+    // Music Button
+    if (btnMusic) {
+        const musicIcon = btnMusic.querySelector('.control-icon');
+
+        // Set initial state
+        if (GameSounds.musicEnabled) {
+            musicIcon.textContent = '🎵';
+            btnMusic.classList.add('active');
+        } else {
+            musicIcon.textContent = '🔇';
+            btnMusic.classList.remove('active');
+        }
+
+        btnMusic.addEventListener('click', () => {
+            const isEnabled = GameSounds.toggleMusic();
+            if (isEnabled) {
+                musicIcon.textContent = '🎵';
+                btnMusic.classList.add('active');
+            } else {
+                musicIcon.textContent = '🔇';
+                btnMusic.classList.remove('active');
+            }
+        });
+    }
+
+    // Sounds Button
+    if (btnSounds) {
+        const soundIcon = btnSounds.querySelector('.control-icon');
+
+        // Set initial state
+        if (GameSounds.enabled) {
+            soundIcon.textContent = '🔊';
+            btnSounds.classList.add('active');
+        } else {
+            soundIcon.textContent = '🔇';
+            btnSounds.classList.remove('active');
+        }
+
+        btnSounds.addEventListener('click', () => {
+            GameSounds.play('click');
+            const isEnabled = GameSounds.toggle();
+            if (isEnabled) {
+                soundIcon.textContent = '🔊';
+                btnSounds.classList.add('active');
+            } else {
+                soundIcon.textContent = '🔇';
+                btnSounds.classList.remove('active');
+            }
+        });
+    }
+
+    // Exit Button
+    if (btnExit) {
+        btnExit.addEventListener('click', () => {
+            GameSounds.play('click');
+            if (confirm('🚪 Exit to homepage? Your progress is saved automatically.')) {
+                window.location.href = 'index.html';
+            }
+        });
+    }
+
+    // Preview pour Purchase
+    const inputPurchase = document.getElementById('custom-usdt-amount');
+    if (inputPurchase) {
+        inputPurchase.addEventListener('input', (e) => {
+            const amount = parseFloat(e.target.value) || 0;
+            const energyAmount = amount * 1000;
+            const preview = document.getElementById('custom-energy-preview');
+            if (preview) {
+                preview.textContent = `= ⚡ ${energyAmount.toLocaleString()} Energy`;
+            }
+        });
+    }
+
+    // Preview pour Sell
+    const inputSell = document.getElementById('custom-plasma-amount');
+    if (inputSell) {
+        inputSell.addEventListener('input', (e) => {
+            const amount = parseFloat(e.target.value) || 0;
+            const usdtAmount = amount / 1000;
+            const preview = document.getElementById('custom-usdt-preview');
+            if (preview) {
+                preview.textContent = `= ${usdtAmount.toLocaleString()} USDT`;
+            }
+        });
+    }
+});
+
+function selectModuleToBuild(moduleId) {
+    console.log('[DEBUG selectModuleToBuild] Called with moduleId:', moduleId);
+
+    if (!window.gameManager) {
+        console.log('[DEBUG selectModuleToBuild] No gameManager');
+        return;
+    }
+
+    const module = GameHelpers.getModuleStats(moduleId);
+    console.log('[DEBUG selectModuleToBuild] Module:', module);
+
+    window.gameManager.isPlacingModule = true;
+    window.gameManager.selectedModuleId = moduleId;
+
+    console.log('[DEBUG selectModuleToBuild] Closing modal...');
+    closeModal('build-modal');
+
+    console.log('[DEBUG selectModuleToBuild] Showing notification...');
+    showNotification(`Click on an empty tile to place ${module.name}`, 'info');
+
+    console.log('[DEBUG selectModuleToBuild] DONE');
+}
+
+function executeRaid() {
+    if (!window.gameManager) return;
+
+    // Jouer le son de raid
+    GameSounds.play('raid');
+
+    const winChance = parseInt(document.getElementById('win-chance-slider').value);
+    const result = window.gameManager.executeRaid(winChance);
+
+    if (result) {
+        if (result.isWin) {
+            showNotification(`🎉 VICTORY! +${GameHelpers.formatNumber(result.reward)} energy!`, 'reward');
+        } else {
+            showNotification(`💥 Defeat... +${GameHelpers.formatNumber(result.reward)} energy (consolation)`, 'error');
+        }
+        closeModal('raid-modal');
+    }
+}
+
+let swapDirection = 'plasma'; // 'plasma' or 'energy'
+
+function setSwapDirection(direction) {
+    swapDirection = direction;
+
+    // Jouer le son de swap
+    GameSounds.play('swap');
+
+    // Update button states
+    document.getElementById('swap-dir-plasma').classList.toggle('active', direction === 'plasma');
+    document.getElementById('swap-dir-energy').classList.toggle('active', direction === 'energy');
+
+    // Update labels and available amount
+    if (direction === 'plasma') {
+        document.getElementById('swap-available-label').textContent = 'Available Plasma';
+        document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(window.gameManager.plasma)}`;
+        document.getElementById('swap-available-amount').style.color = '#aa00ff';
+        document.getElementById('swap-input-label').textContent = 'Plasma Amount';
+        document.getElementById('swap-output-label').textContent = 'You will receive (×2)';
+    } else {
+        document.getElementById('swap-available-label').textContent = 'Available Energy';
+        document.getElementById('swap-available-amount').textContent = `⚡ ${GameHelpers.formatNumber(window.gameManager.energy)}`;
+        document.getElementById('swap-available-amount').style.color = '#00f0ff';
+        document.getElementById('swap-input-label').textContent = 'Energy Amount';
+        document.getElementById('swap-output-label').textContent = 'You will receive (×0.5)';
+    }
+
+    // Reset input
+    document.getElementById('swap-amount').value = '';
+    document.getElementById('swap-output').textContent = swapDirection === 'plasma' ? '⚡ 0' : '💎 0';
+}
+
+function setSwapAmount(percentage) {
+    if (!window.gameManager) return;
+
+    GameSounds.play('click');
+
+    const totalAmount = swapDirection === 'plasma' ? window.gameManager.plasma : window.gameManager.energy;
+    const amount = Math.floor(totalAmount * percentage);
+
+    const swapInput = document.getElementById('swap-amount');
+    swapInput.value = amount;
+
+    // Trigger l'update de l'output
+    const rate = swapDirection === 'plasma' ? GAME_CONFIG.SWAP.PLASMA_TO_ENERGY_RATE : GAME_CONFIG.SWAP.ENERGY_TO_PLASMA_RATE;
+    const output = Math.floor(amount * rate);
+    const outputIcon = swapDirection === 'plasma' ? '⚡' : '💎';
+    document.getElementById('swap-output').textContent = `${outputIcon} ${GameHelpers.formatNumber(output)}`;
+}
+
+function executeSwap() {
+    if (!window.gameManager) return;
+
+    const amount = parseInt(document.getElementById('swap-amount').value) || 0;
+
+    if (swapDirection === 'plasma') {
+        if (window.gameManager.swapPlasmaToEnergy(amount)) {
+            document.getElementById('swap-amount').value = '';
+            document.getElementById('swap-output').textContent = '⚡ 0';
+            closeModal('swap-modal');
+        }
+    } else {
+        // Energy → Plasma
+        const plasmaGained = Math.floor(amount * GAME_CONFIG.SWAP.ENERGY_TO_PLASMA_RATE);
+        if (amount > 0 && window.gameManager.energy >= amount) {
+            window.gameManager.energy -= amount;
+            window.gameManager.plasma += plasmaGained;
+            window.gameManager.save();
+            window.gameManager.updateUI();
+            showNotification(`Swapped ${GameHelpers.formatNumber(amount)} energy for ${GameHelpers.formatNumber(plasmaGained)} plasma!`, 'success');
+            document.getElementById('swap-amount').value = '';
+            document.getElementById('swap-output').textContent = '💎 0';
+            closeModal('swap-modal');
+        } else {
+            showNotification('Not enough energy!', 'error');
+        }
+    }
+}
+
+let upgradeTargetLevel = 1;
+
+function adjustTargetLevel(delta) {
+    if (!window.gameManager) return;
+
+    const tileIndex = window.gameManager.selectedTileIndex;
+    const data = window.gameManager.getModuleData(tileIndex);
+    if (!data) return;
+
+    const currentLevel = data.upgrades + 1;
+    const maxLevel = GAME_CONFIG.UPGRADE.MAX_LEVEL + 1;
+
+    const oldTargetLevel = upgradeTargetLevel;
+    upgradeTargetLevel = Math.max(currentLevel + 1, Math.min(maxLevel, upgradeTargetLevel + delta));
+
+    // Only play sound if the level actually changed
+    if (oldTargetLevel !== upgradeTargetLevel) {
+        GameSounds.play('click');
+    }
+
+    updateUpgradeDisplay();
+}
+
+function updateUpgradeDisplay() {
+    if (!window.gameManager) return;
+
+    const tileIndex = window.gameManager.selectedTileIndex;
+    const data = window.gameManager.getModuleData(tileIndex);
+    if (!data) return;
+
+    const currentLevel = data.upgrades + 1;
+    const maxLevel = GAME_CONFIG.UPGRADE.MAX_LEVEL + 1;
+
+    // Show "MAX" if at or beyond max level
+    const targetLevelText = upgradeTargetLevel >= maxLevel ? 'MAX' : upgradeTargetLevel;
+    document.getElementById('upgrade-target-level').textContent = targetLevelText;
+
+    const levelsToUpgrade = upgradeTargetLevel - currentLevel;
+    document.getElementById('upgrade-levels-info').textContent =
+        levelsToUpgrade === 1 ? '+1 level' : `+${levelsToUpgrade} levels`;
+
+    // Calculer le coût total et le boost total
+    let totalCost = 0;
+    let totalBoost = 0;
+    for (let i = currentLevel; i < upgradeTargetLevel; i++) {
+        totalCost += GameHelpers.getUpgradeCost(i);
+        totalBoost += GameHelpers.getUpgradePerHour(i);
+    }
+
+    document.getElementById('upgrade-cost').textContent = `⚡ ${GameHelpers.formatNumber(totalCost)}`;
+    document.getElementById('upgrade-boost').textContent = `+${totalBoost}/hr`;
+
+    const canAfford = window.gameManager.energy >= totalCost;
+    document.getElementById('upgrade-btn').disabled = !canAfford || upgradeTargetLevel <= currentLevel;
+
+    // Disable/enable level adjustment buttons
+    const minusBtn = document.querySelector('.level-btn[onclick="adjustTargetLevel(-1)"]');
+    const plusBtn = document.querySelector('.level-btn[onclick="adjustTargetLevel(1)"]');
+
+    if (minusBtn) {
+        minusBtn.disabled = upgradeTargetLevel <= currentLevel + 1;
+        minusBtn.style.opacity = minusBtn.disabled ? '0.3' : '1';
+        minusBtn.style.cursor = minusBtn.disabled ? 'not-allowed' : 'pointer';
+    }
+
+    if (plusBtn) {
+        plusBtn.disabled = upgradeTargetLevel >= maxLevel;
+        plusBtn.style.opacity = plusBtn.disabled ? '0.3' : '1';
+        plusBtn.style.cursor = plusBtn.disabled ? 'not-allowed' : 'pointer';
+    }
+}
+
+function executeUpgrade() {
+    if (!window.gameManager) return;
+
+    const tileIndex = window.gameManager.selectedTileIndex;
+    const data = window.gameManager.getModuleData(tileIndex);
+    if (!data) return;
+
+    const currentLevel = data.upgrades + 1;
+    const levelsToUpgrade = upgradeTargetLevel - currentLevel;
+
+    // Upgrade multiple fois
+    let success = true;
+    for (let i = 0; i < levelsToUpgrade; i++) {
+        if (!window.gameManager.upgradeModule(tileIndex)) {
+            success = false;
+            break;
+        }
+    }
+
+    if (success) {
+        // Jouer le son d'upgrade
+        GameSounds.play('upgrade');
+
+        closeModal('upgrade-modal');
+        if (window.gameScene) {
+            window.gameScene.updateModuleVisual(tileIndex);
+        }
+        showNotification(`Upgraded to Level ${upgradeTargetLevel}!`, 'success');
+    }
+}
+
+function openUpgradeModal(tileIndex) {
+    if (!window.gameManager) return;
+
+    const data = window.gameManager.getModuleData(tileIndex);
+    if (!data) return;
+
+    window.gameManager.selectedTileIndex = tileIndex;
+    const currentLevel = data.upgrades + 1;
+    upgradeTargetLevel = Math.min(currentLevel + 1, GAME_CONFIG.UPGRADE.MAX_LEVEL + 1);
+
+    // Set planet image
+    const upgradeImg = document.getElementById('upgrade-module-img');
+    if (upgradeImg && data.module.sprite) {
+        upgradeImg.src = `kenney_planets/Planets/${data.module.sprite}`;
+    }
+
+    document.getElementById('upgrade-module-name').textContent = data.module.name;
+    document.getElementById('upgrade-current-level').textContent = `Current: Level ${currentLevel}`;
+
+    if (currentLevel >= GAME_CONFIG.UPGRADE.MAX_LEVEL + 1) {
+        document.getElementById('upgrade-target-level').textContent = 'MAX';
+        document.getElementById('upgrade-levels-info').textContent = 'Already at max level';
+        document.getElementById('upgrade-cost').textContent = '⚡ 0';
+        document.getElementById('upgrade-boost').textContent = '+0/hr';
+        document.getElementById('upgrade-btn').disabled = true;
+
+        // Disable level adjustment buttons
+        const minusBtn = document.querySelector('.level-btn[onclick="adjustTargetLevel(-1)"]');
+        const plusBtn = document.querySelector('.level-btn[onclick="adjustTargetLevel(1)"]');
+        if (minusBtn) {
+            minusBtn.disabled = true;
+            minusBtn.style.opacity = '0.3';
+            minusBtn.style.cursor = 'not-allowed';
+        }
+        if (plusBtn) {
+            plusBtn.disabled = true;
+            plusBtn.style.opacity = '0.3';
+            plusBtn.style.cursor = 'not-allowed';
+        }
+    } else {
+        updateUpgradeDisplay();
+    }
+
+    openModal('upgrade-modal');
+}
+
+function startMoveMode() {
+    if (!window.gameManager) return;
+
+    GameSounds.play('click');
+
+    const tileIndex = window.gameManager.selectedTileIndex;
+    if (tileIndex === null) return;
+
+    closeModal('upgrade-modal');
+
+    // Mode déplacement activé
+    window.gameManager.isMovingModule = true;
+    window.gameManager.movingFromIndex = tileIndex;
+
+    showNotification('Click on an empty tile to move the planet', 'info');
+}
+
+// ==========================================
+// DEMO/DEBUG FUNCTIONS
+// ==========================================
+
+function claimFaucet(type) {
+    if (!window.gameManager) return;
+
+    GameSounds.play('click');
+
+    if (type === 'energy') {
+        window.gameManager.energy += 100000;
+        showNotification('Claimed +100,000 energy!', 'success');
+    } else if (type === 'plasma') {
+        window.gameManager.plasma += 50000;
+        showNotification('Claimed +50,000 plasma!', 'success');
+    }
+
+    window.gameManager.save();
+    window.gameManager.updateUI();
+}
+
+function skipTime(days) {
+    if (!window.gameManager) return;
+
+    GameSounds.play('click');
+
+    const hoursToSkip = days * 24;
+    const energyGained = hoursToSkip * window.gameManager.perHour;
+    const plasmaGained = hoursToSkip * window.gameManager.perHour;
+
+    window.gameManager.energy += energyGained;
+    window.gameManager.plasma += plasmaGained;
+
+    // Reset raid cooldown if skipping time
+    if (days >= 1) {
+        window.gameManager.lastRaidTime = 0;
+    }
+
+    window.gameManager.save();
+    window.gameManager.updateUI();
+
+    showNotification(`⏰ Skipped ${days} day(s)! +${GameHelpers.formatNumber(energyGained)} resources`, 'success');
+}
+
+function resetGameDemo() {
+    if (!window.gameManager) return;
+
+    GameSounds.play('click');
+
+    if (confirm('⚠️ Reset game? This will delete all progress!')) {
+        window.gameManager.resetGame();
+    }
+}
+
+// ==========================================
+// SETTINGS FUNCTIONS
+// ==========================================
+
+function toggleSound() {
+    GameSounds.play('click');
+    const enabled = GameSounds.toggle();
+    const btn = document.getElementById('sound-toggle-btn');
+    btn.textContent = enabled ? 'ON' : 'OFF';
+    btn.style.background = enabled ? 'linear-gradient(135deg, #00ff88, #00cc66)' : 'linear-gradient(135deg, #ff4444, #cc0000)';
+    showNotification(`Sound effects ${enabled ? 'enabled' : 'disabled'}`, 'info');
+}
+
+function toggleMusic() {
+    GameSounds.play('click');
+    const enabled = GameSounds.toggleMusic();
+    const btn = document.getElementById('music-toggle-btn');
+    btn.textContent = enabled ? 'ON' : 'OFF';
+    btn.style.background = enabled ? 'linear-gradient(135deg, #00ff88, #00cc66)' : 'linear-gradient(135deg, #ff4444, #cc0000)';
+    showNotification(`Music ${enabled ? 'enabled' : 'disabled'}`, 'info');
+}
+
+function updateMusicVolume(value) {
+    const volume = parseInt(value) / 100;
+    GameSounds.setMusicVolume(volume);
+
+    // Mettre à jour l'affichage du pourcentage
+    const valueDisplay = document.getElementById('music-volume-value');
+    if (valueDisplay) {
+        valueDisplay.textContent = `${value}%`;
+    }
+
+    // Mettre à jour le gradient du slider
+    const slider = document.getElementById('music-volume-slider');
+    if (slider) {
+        slider.style.background = `linear-gradient(to right, #aa00ff ${value}%, rgba(255,255,255,0.2) ${value}%)`;
+    }
+}
+
+function initSettings() {
+    // Initialiser l'état du bouton son
+    const soundBtn = document.getElementById('sound-toggle-btn');
+    if (soundBtn) {
+        soundBtn.textContent = GameSounds.enabled ? 'ON' : 'OFF';
+        soundBtn.style.background = GameSounds.enabled ? 'linear-gradient(135deg, #00ff88, #00cc66)' : 'linear-gradient(135deg, #ff4444, #cc0000)';
+    }
+
+    // Initialiser l'état du bouton musique
+    const musicBtn = document.getElementById('music-toggle-btn');
+    if (musicBtn) {
+        musicBtn.textContent = GameSounds.musicEnabled ? 'ON' : 'OFF';
+        musicBtn.style.background = GameSounds.musicEnabled ? 'linear-gradient(135deg, #00ff88, #00cc66)' : 'linear-gradient(135deg, #ff4444, #cc0000)';
+    }
+
+    // Initialiser le slider de volume
+    const volumeSlider = document.getElementById('music-volume-slider');
+    const volumeValue = document.getElementById('music-volume-value');
+    if (volumeSlider && volumeValue) {
+        const volumePercent = Math.round(GameSounds.musicVolume * 100);
+        volumeSlider.value = volumePercent;
+        volumeValue.textContent = `${volumePercent}%`;
+        volumeSlider.style.background = `linear-gradient(to right, #aa00ff ${volumePercent}%, rgba(255,255,255,0.2) ${volumePercent}%)`;
+    }
+}
+
+// exitToHomepage function removed - now handled by control button
+
+window.GameManager = GameManager;
+</script>
+
+<script>
+// ============================================
+// COSMIC YIELD - Main Game Scene (TOP-DOWN)
+// ============================================
+
+class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+        this.gridTiles = [];
+        this.moduleSprites = [];
+        this.gridOffsetX = 0;
+        this.gridOffsetY = 0;
+        this.hoveredTile = null;
+        this.gridContainer = null;
+    }
+
+    preload() {
+        this.load.on('progress', (value) => {
+            document.getElementById('loading-bar').style.width = `${value * 100}%`;
+        });
+        this.load.on('complete', () => {
+            document.getElementById('loading-text').textContent = 'Launching station...';
+        });
+
+        // Error handling for file loading
+        this.load.on('loaderror', (file) => {
+            console.error('Error loading file:', file.src);
+        });
+
+        this.load.on('filecomplete', (key) => {
+            console.log('Loaded:', key);
+        });
+
+        // Load planet sprites
+        GAME_CONFIG.MODULES.forEach(module => {
+            if (module.sprite) {
+                console.log(`Loading planet_${module.id} from kenney_planets/Planets/${module.sprite}`);
+                this.load.image(`planet_${module.id}`, `kenney_planets/Planets/${module.sprite}`);
+            }
+        });
+
+        // Load upgrade level effects (noise00-09 for levels 1-10)
+        for (let i = 0; i < 10; i++) {
+            const noiseNum = String(i).padStart(2, '0');
+            console.log(`Loading upgrade_level_${i} from kenney_planets/Parts/noise${noiseNum}.png`);
+            this.load.image(`upgrade_level_${i}`, `kenney_planets/Parts/noise${noiseNum}.png`);
+        }
+
+        // Créer une texture de particule simple
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+        graphics.fillStyle(0xffffff, 1);
+        graphics.fillCircle(4, 4, 4);
+        graphics.generateTexture('particle', 8, 8);
+        graphics.destroy();
+    }
+
+    create() {
+        const totalWidth = GAME_CONFIG.GRID.COLS * GAME_CONFIG.GRID.TILE_SIZE;
+        const totalHeight = GAME_CONFIG.GRID.ROWS * GAME_CONFIG.GRID.TILE_SIZE;
+
+        this.gridOffsetX = -totalWidth / 2;
+        this.gridOffsetY = -totalHeight / 2;
+
+        this.createStarfield();
+        this.createGrid();
+        this.rebuildAllModules();
+        this.setupInput();
+        this.setupCamera();
+
+        setTimeout(() => {
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('hud').style.display = 'flex';
+            document.getElementById('bottom-hud').style.display = 'flex';
+        }, 500);
+
+        window.gameScene = this;
+        this.setupButtons();
+        window.gameManager.updateUI();
+    }
+
+    createStarfield() {
+        const graphics = this.add.graphics();
+        const w = this.cameras.main.width * 3;
+        const h = this.cameras.main.height * 3;
+
+        graphics.fillGradientStyle(0x0a0a2e, 0x0a0a2e, 0x1a0a3e, 0x0a1a3e, 1);
+        graphics.fillRect(-w/2, -h/2, w, h);
+
+        for (let i = 0; i < 300; i++) {
+            const x = Phaser.Math.Between(-w/2, w/2);
+            const y = Phaser.Math.Between(-h/2, h/2);
+            const r = Phaser.Math.FloatBetween(0.5, 2);
+            const a = Phaser.Math.FloatBetween(0.2, 1);
+            graphics.fillStyle(0xffffff, a);
+            graphics.fillCircle(x, y, r);
+        }
+    }
+
+    createGrid() {
+        this.gridContainer = this.add.container(0, 0);
+
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+
+        for (let row = 0; row < GAME_CONFIG.GRID.ROWS; row++) {
+            for (let col = 0; col < GAME_CONFIG.GRID.COLS; col++) {
+                const pos = GameHelpers.gridToScreen(col, row, this.gridOffsetX, this.gridOffsetY);
+                const index = GameHelpers.getTileIndex(col, row);
+
+                const tileGraphics = this.add.graphics();
+
+                // Background fill
+                tileGraphics.fillStyle(0x0a0a1a, 0.3);
+                tileGraphics.fillRect(0, 0, tileSize, tileSize);
+
+                // Border
+                tileGraphics.lineStyle(1, GAME_CONFIG.VISUALS.GRID_COLOR, 0.5);
+                tileGraphics.strokeRect(0, 0, tileSize, tileSize);
+
+                tileGraphics.setPosition(pos.x, pos.y);
+                tileGraphics.setInteractive(
+                    new Phaser.Geom.Rectangle(0, 0, tileSize, tileSize),
+                    Phaser.Geom.Rectangle.Contains
+                );
+
+                this.gridContainer.add(tileGraphics);
+                this.gridTiles[index] = tileGraphics;
+            }
+        }
+
+        this.moduleSprites = new Array(GAME_CONFIG.GRID.TOTAL_TILES).fill(null);
+    }
+
+    createModuleVisual(tileIndex) {
+        const moduleValue = window.gameManager.modules[tileIndex];
+        if (moduleValue === 0) return;
+
+        const data = window.gameManager.getModuleData(tileIndex);
+        if (!data || !data.module) return;
+
+        const coords = GameHelpers.getTileCoords(tileIndex);
+        const pos = GameHelpers.gridToScreen(coords.col, coords.row, this.gridOffsetX, this.gridOffsetY);
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+
+        const moduleContainer = this.add.container(pos.x + tileSize/2, pos.y + tileSize/2);
+
+        // Background square with module color
+        const bg = this.add.graphics();
+        bg.fillStyle(data.module.color, 0.2);
+        bg.fillRoundedRect(-tileSize/2 + 2, -tileSize/2 + 2, tileSize - 4, tileSize - 4, 8);
+        bg.lineStyle(2, data.module.color, 0.6);
+        bg.strokeRoundedRect(-tileSize/2 + 2, -tileSize/2 + 2, tileSize - 4, tileSize - 4, 8);
+        moduleContainer.add(bg);
+
+        // Planet sprite - ALWAYS use sprite images, never fallback to emoji
+        const textureKey = `planet_${data.module.id}`;
+        console.log(`Creating module visual for ${data.module.name}, texture key: ${textureKey}, upgrades: ${data.upgrades}`);
+
+        // Create planet sprite
+        const planetSprite = this.add.image(0, 0, textureKey);
+        planetSprite.setScale(0.10); // Réduit de 0.13 à 0.10 pour ~51px (ne dépasse pas la tuile de 80px)
+        moduleContainer.add(planetSprite);
+
+        // Add upgrade level texture overlay (noise texture)
+        if (data.upgrades > 0) {
+            const upgradeLevel = Math.min(data.upgrades - 1, 9); // Level 1 = noise00, Level 10 = noise09
+            const noiseKey = `upgrade_level_${upgradeLevel}`;
+            console.log(`Adding noise texture: ${noiseKey} for upgrade level ${data.upgrades}`);
+
+            if (this.textures.exists(noiseKey)) {
+                const noiseSprite = this.add.image(0, 0, noiseKey);
+                noiseSprite.setScale(0.10);
+                noiseSprite.setAlpha(0.6); // Augmenté de 0.4 à 0.6 pour plus de visibilité
+                noiseSprite.setTint(data.module.color); // Tint with planet color
+                noiseSprite.setBlendMode(Phaser.BlendModes.ADD); // Changé de OVERLAY à ADD pour plus de visibilité
+                moduleContainer.add(noiseSprite);
+
+                // Subtle pulsing animation on noise texture
+                this.tweens.add({
+                    targets: noiseSprite,
+                    alpha: { from: 0.4, to: 0.8 },
+                    duration: 3000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            } else {
+                console.error(`Noise texture ${noiseKey} not found!`);
+            }
+        }
+
+        // Add subtle rotation animation to planet
+        this.tweens.add({
+            targets: planetSprite,
+            angle: 360,
+            duration: 30000, // Slow rotation (30 seconds per rotation)
+            repeat: -1,
+            ease: 'Linear'
+        });
+
+        // Level indicator
+        if (data.upgrades > 0) {
+            const levelText = this.add.text(0, tileSize/2 - 16, `Lv.${data.upgrades + 1}`, {
+                fontSize: '16px',
+                color: '#ffffff',
+                fontFamily: 'Orbitron',
+                fontWeight: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5);
+            moduleContainer.add(levelText);
+        }
+
+        // Interactive
+        const hitArea = new Phaser.Geom.Rectangle(-tileSize/2, -tileSize/2, tileSize, tileSize);
+        moduleContainer.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+        // Variables pour le drag & drop
+        let isDraggingModule = false;
+        let dragStartIndex = tileIndex;
+
+        // Hover: afficher tooltip avec production/h
+        moduleContainer.on('pointerover', () => {
+            if (!window.gameManager.isPlacingModule) {
+                this.showModuleTooltip(tileIndex);
+            }
+        });
+
+        moduleContainer.on('pointerout', () => {
+            this.hideModuleTooltip();
+        });
+
+        // Clic droit: démarrer le drag
+        moduleContainer.on('pointerdown', (pointer) => {
+            if (!window.gameManager.isPlacingModule) {
+                // Hide tooltip on any click
+                this.hideModuleTooltip();
+
+                if (pointer.button === 2) { // Clic droit
+                    isDraggingModule = true;
+                    dragStartIndex = tileIndex;
+                    moduleContainer.setAlpha(0.6);
+                    this.isDragging = false; // Désactiver le drag de caméra
+                } else if (pointer.button === 0) { // Clic gauche
+                    openUpgradeModal(tileIndex);
+                }
+            }
+        });
+
+        // Fin du drag: déplacer le module
+        moduleContainer.on('pointerup', (pointer) => {
+            if (isDraggingModule && pointer.button === 2) {
+                isDraggingModule = false;
+                moduleContainer.setAlpha(1);
+
+                // Trouver la tuile de destination
+                const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+                const gridPos = GameHelpers.screenToGrid(worldPoint.x, worldPoint.y, this.gridOffsetX, this.gridOffsetY);
+
+                if (GameHelpers.isValidTile(gridPos.col, gridPos.row)) {
+                    const targetIndex = GameHelpers.getTileIndex(gridPos.col, gridPos.row);
+                    if (targetIndex !== dragStartIndex) {
+                        if (window.gameManager.moveModule(dragStartIndex, targetIndex)) {
+                            this.rebuildAllModules();
+                        }
+                    }
+                }
+            }
+        });
+
+        this.gridContainer.add(moduleContainer);
+        this.moduleSprites[tileIndex] = moduleContainer;
+    }
+
+    updateModuleVisual(tileIndex) {
+        if (this.moduleSprites[tileIndex]) {
+            this.moduleSprites[tileIndex].destroy();
+            this.moduleSprites[tileIndex] = null;
+        }
+        this.createModuleVisual(tileIndex);
+    }
+
+    rebuildAllModules() {
+        this.moduleSprites.forEach(sprite => {
+            if (sprite) sprite.destroy();
+        });
+        this.moduleSprites = new Array(GAME_CONFIG.GRID.TOTAL_TILES).fill(null);
+
+        for (let i = 0; i < GAME_CONFIG.GRID.TOTAL_TILES; i++) {
+            if (window.gameManager.modules[i] !== 0) {
+                this.createModuleVisual(i);
+            }
+        }
+    }
+
+    showModuleTooltip(tileIndex) {
+        const data = window.gameManager.getModuleData(tileIndex);
+        if (!data) return;
+
+        const perHour = GameHelpers.getModulePerHour(data.module.id, data.upgrades);
+        const coords = GameHelpers.getTileCoords(tileIndex);
+        const pos = GameHelpers.gridToScreen(coords.col, coords.row, this.gridOffsetX, this.gridOffsetY);
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+
+        // Utiliser tooltip HTML
+        const tooltip = document.getElementById('module-tooltip');
+        if (tooltip) {
+            const planetName = data.module.name || 'Planet';
+            tooltip.innerHTML = `<div style="font-size: 16px; margin-bottom: 4px;">${planetName}</div><div style="font-size: 13px;">⚡ +${perHour}/h</div>`;
+
+            // Convertir position world en position écran
+            const cam = this.cameras.main;
+            const worldX = pos.x + tileSize/2;
+            const worldY = pos.y - 60;
+            const screenX = (worldX - cam.scrollX) * cam.zoom + cam.x;
+            const screenY = (worldY - cam.scrollY) * cam.zoom + cam.y;
+
+            tooltip.style.left = screenX + 'px';
+            tooltip.style.top = screenY + 'px';
+            tooltip.style.display = 'block';
+        }
+    }
+
+    hideModuleTooltip() {
+        const tooltip = document.getElementById('module-tooltip');
+        if (tooltip) {
+            tooltip.style.display = 'none';
+        }
+    }
+
+    setupInput() {
+        // Variables locales pour le drag
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+
+        // POINTERMOVE - Gestion du hover et drag
+        this.input.on('pointermove', (pointer) => {
+            // DRAG ACTIF - Déplacer la caméra
+            if (this.isDragging) {
+                const dx = pointer.x - lastPointerX;
+                const dy = pointer.y - lastPointerY;
+
+                // Marquer comme drag si mouvement significatif
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > 3) {
+                    this.hasDragged = true;
+                }
+
+                // DRAG À 360° - Déplacer la caméra dans TOUTES les directions
+                this.cameras.main.scrollX -= dx / this.cameras.main.zoom;
+                this.cameras.main.scrollY -= dy / this.cameras.main.zoom;
+
+                lastPointerX = pointer.x;
+                lastPointerY = pointer.y;
+                return;
+            }
+
+            // HOVER - Seulement si pas en train de dragger
+            const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+            const gridPos = GameHelpers.screenToGrid(worldPoint.x, worldPoint.y, this.gridOffsetX, this.gridOffsetY);
+
+            if (GameHelpers.isValidTile(gridPos.col, gridPos.row)) {
+                const newIndex = GameHelpers.getTileIndex(gridPos.col, gridPos.row);
+
+                if (this.hoveredTile !== newIndex) {
+                    if (this.hoveredTile !== null) {
+                        this.unhighlightTile(this.hoveredTile);
+                    }
+                    this.hoveredTile = newIndex;
+                    this.highlightTile(newIndex);
+                }
+            } else {
+                if (this.hoveredTile !== null) {
+                    this.unhighlightTile(this.hoveredTile);
+                    this.hoveredTile = null;
+                }
+            }
+        });
+
+        // POINTERDOWN - Début du clic/drag
+        this.input.on('pointerdown', (pointer) => {
+            lastPointerX = pointer.x;
+            lastPointerY = pointer.y;
+
+            // CLIC DROIT ou MOLETTE = toujours drag
+            if (pointer.rightButtonDown() || pointer.button === 1) {
+                this.isDragging = true;
+                this.hasDragged = false;
+                return;
+            }
+
+            // CLIC GAUCHE
+            if (pointer.button === 0) {
+                // Si PAS en mode placement = activer drag
+                if (!window.gameManager.isPlacingModule) {
+                    this.isDragging = true;
+                    this.hasDragged = false;
+                }
+            }
+        });
+
+        // POINTERUP - Fin du clic/drag
+        this.input.on('pointerup', (pointer) => {
+            console.log('[DEBUG POINTERUP] wasDragging:', this.hasDragged, 'hoveredTile:', this.hoveredTile);
+            const wasDragging = this.hasDragged;
+
+            this.isDragging = false;
+            this.hasDragged = false;
+
+            // Si on n'a PAS dragué...
+            if (!wasDragging && this.hoveredTile !== null) {
+                console.log('[DEBUG POINTERUP] Not dragging, hoveredTile valid');
+                // MODE DÉPLACEMENT = Déplacer le module
+                if (window.gameManager.isMovingModule) {
+                    console.log('[DEBUG POINTERUP] MOVE mode');
+                    if (window.gameManager.moveModule(window.gameManager.movingFromIndex, this.hoveredTile)) {
+                        this.rebuildAllModules();
+                    }
+                    window.gameManager.isMovingModule = false;
+                    window.gameManager.movingFromIndex = null;
+                }
+                // MODE PLACEMENT = Placer le module
+                else if (window.gameManager.isPlacingModule) {
+                    console.log('[DEBUG POINTERUP] PLACEMENT mode - calling tryPlaceModule');
+                    this.tryPlaceModule(this.hoveredTile);
+                }
+            }
+        });
+    }
+
+    tryPlaceModule(tileIndex) {
+        console.log('[DEBUG tryPlaceModule] START - tileIndex:', tileIndex);
+        const moduleId = window.gameManager.selectedModuleId;
+        console.log('[DEBUG tryPlaceModule] moduleId:', moduleId);
+
+        if (window.gameManager.modules[tileIndex] === 0) {
+            console.log('[DEBUG tryPlaceModule] Tile empty, calling buildModule');
+            const success = window.gameManager.buildModule(tileIndex, moduleId);
+            console.log('[DEBUG tryPlaceModule] buildModule result:', success);
+            if (success) {
+                console.log('[DEBUG tryPlaceModule] Success! Creating visual...');
+                this.createModuleVisual(tileIndex);
+                this.showBuildEffect(tileIndex);
+                window.gameManager.isPlacingModule = false;
+                window.gameManager.selectedModuleId = null;
+                console.log('[DEBUG tryPlaceModule] DONE - placement complete');
+            }
+        } else {
+            console.log('[DEBUG tryPlaceModule] Tile occupied!');
+            showNotification('Tile already occupied!', 'error');
+        }
+    }
+
+    highlightTile(tileIndex) {
+        const tile = this.gridTiles[tileIndex];
+        if (!tile) return;
+
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+        const isEmpty = window.gameManager.modules[tileIndex] === 0;
+        const isPlacing = window.gameManager.isPlacingModule;
+        const isMoving = window.gameManager.isMovingModule;
+
+        let color = GAME_CONFIG.VISUALS.GRID_HOVER_COLOR;
+        if (isPlacing) {
+            color = isEmpty ? GAME_CONFIG.VISUALS.GRID_VALID_COLOR : GAME_CONFIG.VISUALS.GRID_INVALID_COLOR;
+        } else if (isMoving) {
+            // Mode déplacement: violet si vide, rouge si occupé
+            color = isEmpty ? 0xaa00ff : GAME_CONFIG.VISUALS.GRID_INVALID_COLOR;
+        }
+
+        tile.clear();
+        tile.fillStyle(color, 0.2);
+        tile.fillRect(0, 0, tileSize, tileSize);
+        tile.lineStyle(2, color, 0.8);
+        tile.strokeRect(0, 0, tileSize, tileSize);
+    }
+
+    unhighlightTile(tileIndex) {
+        const tile = this.gridTiles[tileIndex];
+        if (!tile) return;
+
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+
+        tile.clear();
+        tile.fillStyle(0x0a0a1a, 0.3);
+        tile.fillRect(0, 0, tileSize, tileSize);
+        tile.lineStyle(1, GAME_CONFIG.VISUALS.GRID_COLOR, 0.5);
+        tile.strokeRect(0, 0, tileSize, tileSize);
+    }
+
+    showBuildEffect(tileIndex) {
+        const coords = GameHelpers.getTileCoords(tileIndex);
+        const pos = GameHelpers.gridToScreen(coords.col, coords.row, this.gridOffsetX, this.gridOffsetY);
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+
+        const particles = this.add.particles(pos.x + tileSize/2, pos.y + tileSize/2, 'particle', {
+            speed: { min: 50, max: 150 },
+            scale: { start: 1, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 600,
+            quantity: 20,
+            tint: 0x00f0ff
+        });
+
+        this.time.delayedCall(700, () => particles.destroy());
+    }
+
+    showUpgradeEffect(tileIndex) {
+        const coords = GameHelpers.getTileCoords(tileIndex);
+        const pos = GameHelpers.gridToScreen(coords.col, coords.row, this.gridOffsetX, this.gridOffsetY);
+        const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+
+        const particles = this.add.particles(pos.x + tileSize/2, pos.y + tileSize/2, 'particle', {
+            speed: { min: 30, max: 100 },
+            scale: { start: 1.2, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 800,
+            quantity: 15,
+            tint: 0x00ff88
+        });
+
+        this.time.delayedCall(900, () => particles.destroy());
+    }
+
+    setupCamera() {
+        this.cameras.main.setBounds(
+            this.gridOffsetX - 200,
+            this.gridOffsetY - 200,
+            GAME_CONFIG.GRID.COLS * GAME_CONFIG.GRID.TILE_SIZE + 400,
+            GAME_CONFIG.GRID.ROWS * GAME_CONFIG.GRID.TILE_SIZE + 400
+        );
+
+        this.cameras.main.setZoom(1.2);
+
+        // Center camera on existing modules
+        this.centerCameraOnModules();
+
+        // Zoom avec molette
+        this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+            const currentZoom = this.cameras.main.zoom;
+            const zoomDelta = deltaY > 0 ? -0.1 : 0.1;
+            const newZoom = Phaser.Math.Clamp(currentZoom + zoomDelta, 0.5, 2);
+            this.cameras.main.setZoom(newZoom);
+        });
+
+        // Variables pour le drag
+        this.isDragging = false;
+        this.hasDragged = false;
+    }
+
+    centerCameraOnModules() {
+        // Find all placed modules
+        const placedModules = [];
+        for (let i = 0; i < GAME_CONFIG.GRID.TOTAL_TILES; i++) {
+            if (window.gameManager.modules[i] !== 0) {
+                const coords = GameHelpers.getTileCoords(i);
+                const pos = GameHelpers.gridToScreen(coords.col, coords.row, this.gridOffsetX, this.gridOffsetY);
+                placedModules.push({ x: pos.x, y: pos.y });
+            }
+        }
+
+        // If there are modules, center camera on them
+        if (placedModules.length > 0) {
+            // Calculate bounding box
+            let minX = placedModules[0].x;
+            let maxX = placedModules[0].x;
+            let minY = placedModules[0].y;
+            let maxY = placedModules[0].y;
+
+            placedModules.forEach(pos => {
+                minX = Math.min(minX, pos.x);
+                maxX = Math.max(maxX, pos.x);
+                minY = Math.min(minY, pos.y);
+                maxY = Math.max(maxY, pos.y);
+            });
+
+            // Add tile size for complete coverage
+            const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
+            maxX += tileSize;
+            maxY += tileSize;
+
+            // Calculate center
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+
+            // Calculate required zoom to fit all modules
+            const width = maxX - minX + 200; // Add padding
+            const height = maxY - minY + 200;
+            const viewWidth = this.cameras.main.width;
+            const viewHeight = this.cameras.main.height;
+
+            const zoomX = viewWidth / width;
+            const zoomY = viewHeight / height;
+            const optimalZoom = Math.min(zoomX, zoomY, 1.5); // Max zoom 1.5
+            const finalZoom = Math.max(optimalZoom, 0.6); // Min zoom 0.6
+
+            // Apply zoom and center
+            this.cameras.main.setZoom(finalZoom);
+            this.cameras.main.centerOn(centerX, centerY);
+        }
+    }
+
+    setupButtons() {
+        document.getElementById('btn-build').onclick = () => openModal('build-modal');
+        document.getElementById('btn-raid').onclick = () => openModal('raid-modal');
+        document.getElementById('btn-swap').onclick = () => openModal('swap-modal');
+
+        const winChanceSlider = document.getElementById('win-chance-slider');
+        winChanceSlider.oninput = () => {
+            document.getElementById('win-chance').textContent = winChanceSlider.value;
+            window.gameManager.updateUI();
+        };
+
+        const swapInput = document.getElementById('swap-amount');
+        swapInput.oninput = () => {
+            const amount = parseInt(swapInput.value) || 0;
+            const rate = swapDirection === 'plasma' ? GAME_CONFIG.SWAP.PLASMA_TO_ENERGY_RATE : GAME_CONFIG.SWAP.ENERGY_TO_PLASMA_RATE;
+            const output = Math.floor(amount * rate);
+            const outputIcon = swapDirection === 'plasma' ? '⚡' : '💎';
+            document.getElementById('swap-output').textContent = `${outputIcon} ${GameHelpers.formatNumber(output)}`;
+        };
+    }
+
+    update() {
+        // Game loop updates
+    }
+}
+
+// ============================================
+// WEB3 CONFIGURATION & CONTRACT SETUP
+// ============================================
+
+const CONTRACTS = {
+    cosmicYield: '0x755E7fa51251824bC03E783f8359394aB57289B6',
+    usdt: '0x04B0A46F87182FD00C9Ef077b14c1c2bfa7Fe3Ef',
+    chainId: 97 // BSC Testnet
+};
+
+const CHAIN_NAME = {
+    97: 'BSC Testnet',
+    56: 'BSC Mainnet'
+};
+
+// Minimal ABI for CosmicYield
+const COSMIC_YIELD_ABI = [
+    'function getPlanet(address _player) external view returns (tuple(uint32 energy, uint32 plasma, uint32 perHour, uint32 alliesCount, uint32 energyFromAllies, uint32 claimTime, uint32 battleTime, uint16 battleId, uint8 battlesInRow, bool isWinInRow, address ally, uint8[360] tiles))',
+    'function buyEnergy(uint256 _depositAmount, address _ally) external',
+    'function placeBuildings(uint16[] calldata _tileIds, uint8 _level) external',
+    'function upgradeBuilding(uint16 _tileId) external',
+    'function sellPlasma(uint256 _plasma) external',
+    'function swapPlasmaToEnergy(uint256 _plasma) external',
+    'function battle(uint8 _winChance) external',
+    'event EnergyBought(address indexed explorer, address indexed ally, uint256 energy)',
+    'event BuildingsPlaced(address indexed explorer, uint16[] tileIds, uint8 level)',
+    'event BattleResult(address indexed explorer, bool isWin, uint8 winChance, uint256 battleReward)'
+];
+
+// Minimal ABI for USDT
+const USDT_ABI = [
+    'function approve(address spender, uint256 amount) external returns (bool)',
+    'function transfer(address to, uint256 amount) external returns (bool)',
+    'function balanceOf(address account) external view returns (uint256)',
+    'function allowance(address owner, address spender) external view returns (uint256)',
+    'event Transfer(address indexed from, address indexed to, uint256 value)',
+    'event Approval(address indexed owner, address indexed spender, uint256 value)'
+];
+
+// ============================================
+// WEB3 GAME MANAGER
+// ============================================
+
+class Web3GameManager {
+    constructor() {
+        this.provider = null;
+        this.signer = null;
+        this.userAddress = null;
+        this.cosmicYieldContract = null;
+        this.usdtContract = null;
+        this.isConnected = false;
+
+        // Local state cache (updated from contract)
+        this.energy = 0;
+        this.plasma = 0;
+        this.perHour = 0;
+        this.modules = new Array(360).fill(0);
+        this.moduleLevels = {};
+        this.ally = null;
+    }
+
+    async init() {
+        if (!window.ethereum) {
+            this.showError('MetaMask or Rabby not installed. Please install a Web3 wallet.');
+            return false;
+        }
+
+        // Wait for button to be in DOM
+        const waitForButton = () => {
+            const btn = document.getElementById('connect-wallet-btn');
+            if (!btn) {
+                setTimeout(waitForButton, 100);
+                return;
+            }
+            btn.addEventListener('click', () => this.connectWallet());
+        };
+        waitForButton();
+
+        // Check if already connected
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            if (accounts.length > 0) {
+                await this.connectWallet();
+            }
+        } catch (error) {
+            console.log('No connected account found');
+        }
+
+        return true;
+    }
+
+    async connectWallet() {
+        try {
+            console.log('[Web3] connectWallet() called');
+            console.log('[Web3] window.ethereum:', typeof window.ethereum);
+            console.log('[Web3] ethers:', typeof ethers);
+
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            console.log('[Web3] Accounts received:', accounts);
+
+            this.userAddress = accounts[0];
+            this.provider = new ethers.BrowserProvider(window.ethereum);
+            this.signer = await this.provider.getSigner();
+            console.log('[Web3] Signer initialized');
+
+            // Check network
+            const network = await this.provider.getNetwork();
+            console.log('[Web3] Network:', network.chainId, 'Expected:', CONTRACTS.chainId);
+
+            if (network.chainId !== BigInt(CONTRACTS.chainId)) {
+                console.log('[Web3] Wrong network, switching...');
+                await this.switchNetwork();
+                return;
+            }
+
+            // Initialize contracts
+            this.cosmicYieldContract = new ethers.Contract(CONTRACTS.cosmicYield, COSMIC_YIELD_ABI, this.signer);
+            this.usdtContract = new ethers.Contract(CONTRACTS.usdt, USDT_ABI, this.signer);
+            console.log('[Web3] Contracts initialized');
+
+            this.isConnected = true;
+            this.updateWalletUI();
+            console.log('[Web3] Wallet UI updated');
+
+            // Load planet data
+            await this.loadPlanetData();
+            console.log('[Web3] Planet data loaded');
+
+            return true;
+        } catch (error) {
+            console.error('[Web3] Connection error:', error);
+            console.error('[Web3] Error message:', error.message);
+            console.error('[Web3] Error stack:', error.stack);
+            this.showError('Failed to connect wallet: ' + error.message);
+            return false;
+        }
+    }
+
+    async switchNetwork() {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0x' + CONTRACTS.chainId.toString(16) }]
+            });
+        } catch (error) {
+            if (error.code === 4902) {
+                // Network not added, add it
+                await this.addNetwork();
+            } else {
+                this.showError('Failed to switch network');
+            }
+        }
+    }
+
+    async addNetwork() {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                    chainId: '0x' + CONTRACTS.chainId.toString(16),
+                    chainName: CHAIN_NAME[CONTRACTS.chainId],
+                    rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545'],
+                    blockExplorerUrls: ['https://testnet.bscscan.com'],
+                    nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 }
+                }]
+            });
+        } catch (error) {
+            this.showError('Failed to add network');
+        }
+    }
+
+    updateWalletUI() {
+        const panel = document.getElementById('wallet-panel');
+        const addressEl = document.getElementById('wallet-address');
+        const networkEl = document.getElementById('wallet-network');
+        const connectBtn = document.getElementById('connect-wallet-btn');
+
+        if (this.isConnected) {
+            addressEl.textContent = this.userAddress.substring(0, 6) + '...' + this.userAddress.substring(38);
+            networkEl.textContent = 'Network: ' + CHAIN_NAME[CONTRACTS.chainId];
+            connectBtn.style.display = 'none';
+            panel.classList.add('connected');
+        } else {
+            addressEl.textContent = 'Not Connected';
+            networkEl.textContent = 'Network: Disconnected';
+            connectBtn.style.display = 'block';
+            panel.classList.remove('connected');
+        }
+    }
+
+    async loadPlanetData() {
+        try {
+            if (!this.isConnected) return;
+
+            const planetData = await this.cosmicYieldContract.getPlanet(this.userAddress);
+
+            this.energy = Number(planetData.energy);
+            this.plasma = Number(planetData.plasma);
+            this.perHour = Number(planetData.perHour);
+            this.ally = planetData.ally;
+
+            // Extract tile data (convert tiles array to module format)
+            this.modules.fill(0);
+            planetData.tiles.forEach((tile, index) => {
+                if (tile > 0) {
+                    const level = tile % 10;
+                    this.modules[index] = level; // Store planet ID (1-8)
+                    if (!this.moduleLevels[index]) {
+                        this.moduleLevels[index] = 1;
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error loading planet data:', error);
+        }
+    }
+
+    async approveUSDT(amount) {
+        return this.executeTransaction(
+            async () => {
+                const tx = await this.usdtContract.approve(CONTRACTS.cosmicYield, amount);
+                return tx;
+            },
+            'Approving USDT...'
+        );
+    }
+
+    async buyEnergy(usdtAmount, allyAddress = '0x0000000000000000000000000000000000000000') {
+        return this.executeTransaction(
+            async () => {
+                // First approve
+                const allowance = await this.usdtContract.allowance(this.userAddress, CONTRACTS.cosmicYield);
+                if (allowance < BigInt(usdtAmount)) {
+                    await this.approveUSDT(usdtAmount);
+                }
+
+                // Then buy energy
+                const tx = await this.cosmicYieldContract.buyEnergy(usdtAmount, allyAddress);
+                return tx;
+            },
+            'Buying Energy...'
+        );
+    }
+
+    async placeBuildings(tileIds, level) {
+        return this.executeTransaction(
+            async () => {
+                const tx = await this.cosmicYieldContract.placeBuildings(tileIds, level);
+                return tx;
+            },
+            'Placing Buildings...'
+        );
+    }
+
+    async upgradeBuilding(tileId) {
+        return this.executeTransaction(
+            async () => {
+                const tx = await this.cosmicYieldContract.upgradeBuilding(tileId);
+                return tx;
+            },
+            'Upgrading Building...'
+        );
+    }
+
+    async sellPlasma(plasmaAmount) {
+        return this.executeTransaction(
+            async () => {
+                const tx = await this.cosmicYieldContract.sellPlasma(plasmaAmount);
+                return tx;
+            },
+            'Selling Plasma...'
+        );
+    }
+
+    async swapPlasmaToEnergy(plasmaAmount) {
+        return this.executeTransaction(
+            async () => {
+                const tx = await this.cosmicYieldContract.swapPlasmaToEnergy(plasmaAmount);
+                return tx;
+            },
+            'Swapping Plasma to Energy...'
+        );
+    }
+
+    async executeTransaction(txFunction, statusMsg) {
+        try {
+            if (!this.isConnected) {
+                this.showError('Wallet not connected');
+                return null;
+            }
+
+            this.showTxModal(statusMsg);
+
+            const tx = await txFunction();
+            const txHash = tx.hash;
+
+            // Update modal with tx hash
+            const hashEl = document.getElementById('tx-hash');
+            const linkEl = document.getElementById('tx-link');
+            hashEl.textContent = 'TX: ' + txHash;
+            linkEl.href = `https://testnet.bscscan.com/tx/${txHash}`;
+
+            // Wait for confirmation
+            const receipt = await tx.wait();
+
+            if (receipt && receipt.status === 1) {
+                document.getElementById('tx-status').textContent = '✓ Transaction Confirmed!';
+
+                // Reload planet data
+                setTimeout(async () => {
+                    await this.loadPlanetData();
+                    this.hideTxModal();
+                }, 2000);
+
+                return receipt;
+            } else {
+                throw new Error('Transaction failed');
+            }
+        } catch (error) {
+            console.error('Transaction error:', error);
+            this.hideTxModal();
+            this.showError('Transaction failed: ' + (error.reason || error.message));
+            return null;
+        }
+    }
+
+    showTxModal(status) {
+        const modal = document.getElementById('tx-modal');
+        document.getElementById('tx-status').textContent = status;
+        document.getElementById('tx-hash').textContent = '';
+        modal.classList.add('show');
+    }
+
+    hideTxModal() {
+        const modal = document.getElementById('tx-modal');
+        modal.classList.remove('show');
+    }
+
+    showError(message) {
+        const toast = document.getElementById('error-toast');
+        document.getElementById('error-message').textContent = message;
+        toast.classList.add('show');
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 5000);
+    }
+
+    // For compatibility with original GameManager
+    save() {} // Web3 version doesn't need to save
+    load() {} // Web3 version loads from contract
+
+    updateUI() {
+        // Update energy and plasma display
+        const energyEl = document.getElementById('energy-value');
+        const plasmaEl = document.getElementById('plasma-value');
+
+        const formatLive = (value) => {
+            const parts = value.toFixed(4).split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+            return parts.join('.');
+        };
+
+        if (energyEl) energyEl.textContent = formatLive(this.energy);
+        if (plasmaEl) plasmaEl.textContent = formatLive(this.plasma);
+
+        // Add animation
+        if (energyEl) {
+            energyEl.classList.add('value-updating');
+            setTimeout(() => energyEl.classList.remove('value-updating'), 100);
+        }
+        if (plasmaEl) {
+            plasmaEl.classList.add('value-updating');
+            setTimeout(() => plasmaEl.classList.remove('value-updating'), 100);
+        }
+
+        // Update production rate
+        const energyRateEl = document.getElementById('energy-rate');
+        const plasmaRateEl = document.getElementById('plasma-rate');
+        if (energyRateEl) energyRateEl.textContent = `+${GameHelpers.formatNumber(this.perHour)}/hr`;
+        if (plasmaRateEl) plasmaRateEl.textContent = `+${GameHelpers.formatNumber(this.perHour)}/hr`;
+
+        // Update commander info
+        const commanderEl = document.getElementById('commander-name');
+        const stationEl = document.getElementById('station-level');
+        if (commanderEl) commanderEl.textContent = 'Commander';
+        if (stationEl) stationEl.textContent = `Station Lv. 1 • ${this.getModuleCount()} modules`;
+
+        this.updateBuildMenu();
+    }
+
+    updateBuildMenu() {
+        const grid = document.getElementById('module-grid');
+        if (!grid) return;
+
+        // Only update if modal is open
+        const modal = document.getElementById('build-modal');
+        if (!modal || !modal.classList.contains('active')) {
+            return;
+        }
+
+        const cards = grid.querySelectorAll('.module-card');
+        GAME_CONFIG.MODULES.forEach((module, index) => {
+            const card = cards[index];
+            if (!card) return;
+
+            const canAfford = this.energy >= module.cost;
+            const currentCanAfford = card.dataset.canAfford === 'true';
+
+            if (canAfford !== currentCanAfford) {
+                card.dataset.canAfford = canAfford;
+                card.classList.toggle('can-afford', canAfford);
+            }
+        });
+    }
+
+    getModuleCount() {
+        return this.modules.filter(m => m > 0).length;
+    }
+
+    getStationLevel() {
+        return 1; // Web3 version doesn't track station level separately
+    }
+
+    getRaidCooldownRemaining() {
+        return 0; // Web3 version handles this differently
+    }
+
+    // Additional compatibility methods for Web3 version
+    buildInitialMenu() {
+        // No-op for Web3 version - UI is built from HTML
+    }
+
+    getModuleData(tileIndex) {
+        const value = this.modules[tileIndex];
+        if (value === 0) return null;
+
+        const level = value; // For Web3, tiles store the level directly
+        const module = GAME_CONFIG.MODULES[level - 1];
+
+        return {
+            level,
+            upgrades: 0,
+            module: module
+        };
+    }
+
+    buildModule(tileIndex, moduleId) {
+        // Web3 version uses placeBuildings contract function
+        // This is a stub - actual implementation uses async contract call
+        return false;
+    }
+
+    upgradeModule(tileIndex) {
+        // Web3 version uses upgradeBuilding contract function
+        // This is a stub - actual implementation uses async contract call
+        return false;
+    }
+
+    moveModule(fromIndex, toIndex) {
+        // Web3 version doesn't support moving modules
+        return false;
+    }
+
+    resetGame() {
+        // Web3 version doesn't allow resetting on-chain state
+        return false;
+    }
+
+    swapPlasmaToEnergy(amount) {
+        // Async version handled by swapPlasmaToEnergy() method
+        return false;
+    }
+
+    executeRaid(winChance) {
+        // Async version handled by battle() method
+        return null;
+    }
+}
+
+// Initialize Web3 Game Manager (wait for ethers.js to load)
+window.web3Manager = new Web3GameManager();
+
+// Wait for ethers.js to be available
+function waitForEthersAndInit(attempts = 0) {
+    if (typeof ethers !== 'undefined') {
+        window.web3Manager.init();
+    } else if (attempts < 100) {
+        setTimeout(() => waitForEthersAndInit(attempts + 1), 50);
+    } else {
+        console.error('ethers.js failed to load');
+    }
+}
+
+waitForEthersAndInit();
+
+// ============================================
+// PHASER GAME INITIALIZATION
+// ============================================
+
+const config = {
+    type: Phaser.AUTO,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: '#0a0a1a',
+    parent: 'game-container',
+    scene: [GameScene],
+    physics: {
+        default: 'arcade',
+        arcade: { debug: false }
+    }
+};
+
+// Initialize game manager first (use Web3 version)
+window.gameManager = window.web3Manager;
+
+// Then initialize Phaser
+const game = new Phaser.Game(config);
+
+// Initialize settings UI
+initSettings();
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    game.scale.resize(window.innerWidth, window.innerHeight);
+});
+
+// Setup event delegation for module cards (prevent multi-click)
+let lastClickTime = 0;
+let isProcessingClick = false;
+const CLICK_DEBOUNCE = 800; // 800ms entre chaque clic
+
+setTimeout(() => {
+    const moduleGrid = document.getElementById('module-grid');
+    if (moduleGrid) {
+        console.log('[DEBUG] Setting up module grid click handler');
+
+        moduleGrid.addEventListener('click', (e) => {
+            console.log('[DEBUG] Click detected, isProcessing:', isProcessingClick, 'timeSinceLastClick:', Date.now() - lastClickTime);
+
+            // Bloquer complètement si déjà en train de traiter
+            if (isProcessingClick) {
+                console.log('[DEBUG] BLOCKED - Already processing');
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                return false;
+            }
+
+            const now = Date.now();
+            if (now - lastClickTime < CLICK_DEBOUNCE) {
+                console.log('[DEBUG] BLOCKED - Debounce active');
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                return false;
+            }
+
+            const card = e.target.closest('.module-card');
+            if (!card) {
+                console.log('[DEBUG] No card found');
+                return;
+            }
+
+            const canAfford = card.dataset.canAfford === 'true';
+            const moduleId = parseInt(card.dataset.moduleId);
+
+            console.log('[DEBUG] Card:', {moduleId, canAfford});
+
+            if (canAfford && moduleId) {
+                isProcessingClick = true;
+                lastClickTime = now;
+
+                console.log('[DEBUG] EXECUTING selectModuleToBuild');
+                selectModuleToBuild(moduleId);
+
+                // Réinitialiser après 800ms
+                setTimeout(() => {
+                    isProcessingClick = false;
+                    console.log('[DEBUG] Ready for next click');
+                }, CLICK_DEBOUNCE);
+            }
+        }, {capture: true, once: false});
+    }
+}, 100);
+</script>
+</body>
+</html>
