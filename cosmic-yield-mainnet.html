@@ -3845,7 +3845,12 @@ class Web3GameManager {
             // Load planet data
             await this.loadPlanetData();
             this.updateUI();
-            console.log('[Web3] Planet data loaded and UI updated');
+
+            // Rebuild all planet sprites from loaded data
+            if (window.gameScene) {
+                window.gameScene.rebuildAllModules();
+            }
+            console.log('[Web3] Planet data loaded and visuals rebuilt');
 
             return true;
         } catch (error) {
@@ -3922,13 +3927,12 @@ class Web3GameManager {
 
             // Extract tile data (convert tiles array to module format)
             this.modules.fill(0);
+            this.moduleLevels = {};
             planetData.tiles.forEach((tile, index) => {
                 if (tile > 0) {
-                    const level = tile % 10;
-                    this.modules[index] = level; // Store planet ID (1-8)
-                    if (!this.moduleLevels[index]) {
-                        this.moduleLevels[index] = 1;
-                    }
+                    // Store the full encoded value (preserves both planetId and upgrades)
+                    // Format: (upgrades * 10) + planetId
+                    this.modules[index] = tile;
                 }
             });
         } catch (error) {
@@ -4031,6 +4035,12 @@ class Web3GameManager {
                 setTimeout(async () => {
                     await this.loadPlanetData();
                     this.updateUI();
+
+                    // Rebuild all planet sprites
+                    if (window.gameScene) {
+                        window.gameScene.rebuildAllModules();
+                    }
+
                     this.hideTxModal();
                 }, 2000);
 
