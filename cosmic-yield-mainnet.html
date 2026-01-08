@@ -1122,6 +1122,28 @@
             cursor: not-allowed;
         }
 
+        #disconnect-wallet-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: var(--color-bg);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        #disconnect-wallet-btn:hover {
+            opacity: 0.9;
+        }
+
+        #disconnect-wallet-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         /* Transaction Modal */
         #tx-modal {
             position: fixed;
@@ -1231,6 +1253,7 @@
         <div class="wallet-address" id="wallet-address">Not Connected</div>
         <div class="wallet-network" id="wallet-network">Network: Disconnected</div>
         <button id="connect-wallet-btn">Connect Wallet</button>
+        <button id="disconnect-wallet-btn" style="display: none;">Disconnect</button>
     </div>
 
     <!-- Transaction Modal -->
@@ -1413,34 +1436,22 @@
                     </div>
                     <div class="current-module-info">
                         <h3 id="upgrade-module-name">Solar Generator</h3>
-                        <p id="upgrade-current-level">Current: Level 1</p>
+                        <p id="upgrade-current-level">Current: Level 1 (0 upgrades)</p>
+                        <p id="upgrade-next-level" style="color: var(--color-success);">Next: Level 1 (1 upgrade)</p>
                     </div>
-                </div>
-
-                <div style="margin: 1.5rem 0;">
-                    <label style="display: block; text-align: center; color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-bottom: 0.5rem;">Target Level</label>
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
-                        <button class="level-btn" onclick="adjustTargetLevel(-1)">−</button>
-                        <div style="font-size: 2rem; font-weight: bold; color: var(--color-primary); min-width: 80px; text-align: center;" id="upgrade-target-level">2</div>
-                        <button class="level-btn" onclick="adjustTargetLevel(1)">+</button>
-                    </div>
-                    <div style="text-align: center; margin-top: 0.5rem; font-size: 0.75rem; color: rgba(255,255,255,0.5);" id="upgrade-levels-info">+1 level</div>
                 </div>
 
                 <div class="upgrade-cost">
                     <div class="upgrade-stat">
-                        <div class="upgrade-stat-label">Total Cost</div>
+                        <div class="upgrade-stat-label">Upgrade Cost</div>
                         <div class="upgrade-stat-value" id="upgrade-cost" style="color: var(--color-energy);">⚡ 2,500</div>
                     </div>
                     <div class="upgrade-stat">
-                        <div class="upgrade-stat-label">Total Production Boost</div>
+                        <div class="upgrade-stat-label">Production Boost</div>
                         <div class="upgrade-stat-value" id="upgrade-boost" style="color: var(--color-success);">+1/hr</div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 1rem; justify-content: center;">
-                    <button class="upgrade-btn" id="upgrade-btn" onclick="executeUpgrade()" style="flex: 1; max-width: 200px;">⬆️ UPGRADE</button>
-                    <button class="upgrade-btn" id="move-btn" onclick="startMoveMode()" style="flex: 1; max-width: 200px; background: linear-gradient(135deg, #aa00ff, #7700cc);">📦 MOVE</button>
-                </div>
+                <button class="upgrade-btn" id="upgrade-btn" onclick="executeUpgrade()">⬆️ UPGRADE (+1)</button>
             </div>
         </div>
     </div>
@@ -1537,10 +1548,10 @@
 
                 <div style="padding: 1rem; background: rgba(255, 136, 0, 0.1); border: 2px solid #ff8800; border-radius: 12px;">
                     <div style="font-size: 0.9rem; color: #ff8800; margin-bottom: 0.75rem; font-weight: bold; text-align: center;">
-                        Custom amount (min. 1,000 Plasma)
+                        Custom amount
                     </div>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <input type="number" id="custom-plasma-amount" min="1000" step="1000" placeholder="1000"
+                        <input type="number" id="custom-plasma-amount" placeholder="Enter plasma amount"
                             style="flex: 1; padding: 0.75rem; font-size: 1rem; background: rgba(0,0,0,0.5); border: 2px solid #ff8800;
                             border-radius: 8px; color: #fff; font-family: 'Orbitron', sans-serif; text-align: center;">
                         <button class="upgrade-btn" onclick="sellCustomAmount()"
@@ -2772,29 +2783,6 @@ function executeSwap() {
     }
 }
 
-let upgradeTargetLevel = 1;
-
-function adjustTargetLevel(delta) {
-    if (!window.gameManager) return;
-
-    const tileIndex = window.gameManager.selectedTileIndex;
-    const data = window.gameManager.getModuleData(tileIndex);
-    if (!data) return;
-
-    const currentLevel = data.upgrades + 1;
-    const maxLevel = GAME_CONFIG.UPGRADE.MAX_LEVEL + 1;
-
-    const oldTargetLevel = upgradeTargetLevel;
-    upgradeTargetLevel = Math.max(currentLevel + 1, Math.min(maxLevel, upgradeTargetLevel + delta));
-
-    // Only play sound if the level actually changed
-    if (oldTargetLevel !== upgradeTargetLevel) {
-        GameSounds.play('click');
-    }
-
-    updateUpgradeDisplay();
-}
-
 function updateUpgradeDisplay() {
     if (!window.gameManager) return;
 
@@ -2802,76 +2790,86 @@ function updateUpgradeDisplay() {
     const data = window.gameManager.getModuleData(tileIndex);
     if (!data) return;
 
-    const currentLevel = data.upgrades + 1;
-    const maxLevel = GAME_CONFIG.UPGRADE.MAX_LEVEL + 1;
+    const currentUpgrades = data.upgrades; // 0-9
+    const maxUpgrades = GAME_CONFIG.UPGRADE.MAX_LEVEL; // 9
+    const buildingLevel = data.level; // 1-8
 
-    // Show "MAX" if at or beyond max level
-    const targetLevelText = upgradeTargetLevel >= maxLevel ? 'MAX' : upgradeTargetLevel;
-    document.getElementById('upgrade-target-level').textContent = targetLevelText;
+    // Display current level with upgrade count
+    document.getElementById('upgrade-current-level').textContent =
+        `Current: Level ${buildingLevel} (${currentUpgrades} upgrade${currentUpgrades !== 1 ? 's' : ''})`;
 
-    const levelsToUpgrade = upgradeTargetLevel - currentLevel;
-    document.getElementById('upgrade-levels-info').textContent =
-        levelsToUpgrade === 1 ? '+1 level' : `+${levelsToUpgrade} levels`;
-
-    // Calculer le coût total et le boost total
-    let totalCost = 0;
-    let totalBoost = 0;
-    for (let i = currentLevel; i < upgradeTargetLevel; i++) {
-        totalCost += GameHelpers.getUpgradeCost(i);
-        totalBoost += GameHelpers.getUpgradePerHour(i);
+    // Check if at max upgrades
+    if (currentUpgrades >= maxUpgrades) {
+        document.getElementById('upgrade-next-level').textContent = 'MAX - No more upgrades available';
+        document.getElementById('upgrade-cost').textContent = '⚡ 0';
+        document.getElementById('upgrade-boost').textContent = '+0/hr';
+        document.getElementById('upgrade-btn').disabled = true;
+        return;
     }
 
-    document.getElementById('upgrade-cost').textContent = `⚡ ${GameHelpers.formatNumber(totalCost)}`;
-    document.getElementById('upgrade-boost').textContent = `+${totalBoost}/hr`;
+    // Display next level
+    document.getElementById('upgrade-next-level').textContent =
+        `Next: Level ${buildingLevel} (${currentUpgrades + 1} upgrade${currentUpgrades + 1 !== 1 ? 's' : ''})`;
 
-    const canAfford = window.gameManager.energy >= totalCost;
-    document.getElementById('upgrade-btn').disabled = !canAfford || upgradeTargetLevel <= currentLevel;
+    // Calculate single upgrade cost/boost (based on building level, not upgrade count)
+    const upgradeCost = GameHelpers.getUpgradeCost(buildingLevel);
+    const upgradeBoost = GameHelpers.getUpgradePerHour(buildingLevel);
 
-    // Disable/enable level adjustment buttons
-    const minusBtn = document.querySelector('.level-btn[onclick="adjustTargetLevel(-1)"]');
-    const plusBtn = document.querySelector('.level-btn[onclick="adjustTargetLevel(1)"]');
+    document.getElementById('upgrade-cost').textContent = `⚡ ${GameHelpers.formatNumber(upgradeCost)}`;
+    document.getElementById('upgrade-boost').textContent = `+${upgradeBoost}/hr`;
 
-    if (minusBtn) {
-        minusBtn.disabled = upgradeTargetLevel <= currentLevel + 1;
-        minusBtn.style.opacity = minusBtn.disabled ? '0.3' : '1';
-        minusBtn.style.cursor = minusBtn.disabled ? 'not-allowed' : 'pointer';
-    }
-
-    if (plusBtn) {
-        plusBtn.disabled = upgradeTargetLevel >= maxLevel;
-        plusBtn.style.opacity = plusBtn.disabled ? '0.3' : '1';
-        plusBtn.style.cursor = plusBtn.disabled ? 'not-allowed' : 'pointer';
-    }
+    // Enable/disable button based on energy
+    const canAfford = window.gameManager.energy >= upgradeCost;
+    document.getElementById('upgrade-btn').disabled = !canAfford;
 }
 
-function executeUpgrade() {
+async function executeUpgrade() {
     if (!window.gameManager) return;
+
+    GameSounds.play('click');
 
     const tileIndex = window.gameManager.selectedTileIndex;
     const data = window.gameManager.getModuleData(tileIndex);
     if (!data) return;
 
-    const currentLevel = data.upgrades + 1;
-    const levelsToUpgrade = upgradeTargetLevel - currentLevel;
+    const currentUpgrades = data.upgrades;
+    const maxUpgrades = GAME_CONFIG.UPGRADE.MAX_LEVEL;
+    const buildingLevel = data.level;
 
-    // Upgrade multiple fois
-    let success = true;
-    for (let i = 0; i < levelsToUpgrade; i++) {
-        if (!window.gameManager.upgradeModule(tileIndex)) {
-            success = false;
-            break;
-        }
+    // Validate max level
+    if (currentUpgrades >= maxUpgrades) {
+        showNotification('Already at max upgrade level!', 'error');
+        return;
     }
 
-    if (success) {
-        // Jouer le son d'upgrade
-        GameSounds.play('upgrade');
+    // Calculate cost for validation
+    const upgradeCost = GameHelpers.getUpgradeCost(buildingLevel);
+    if (window.gameManager.energy < upgradeCost) {
+        showNotification('Not enough energy!', 'error');
+        return;
+    }
 
-        closeModal('upgrade-modal');
-        if (window.gameScene) {
-            window.gameScene.updateModuleVisual(tileIndex);
+    // Check wallet connection
+    if (!window.web3Manager || !window.web3Manager.userAddress) {
+        showNotification('Please connect your wallet first', 'error');
+        return;
+    }
+
+    // Close modal before transaction
+    closeModal('upgrade-modal');
+
+    try {
+        // Call Web3 method (tileIndex is 0-359)
+        const result = await window.web3Manager.upgradeBuilding(tileIndex);
+
+        if (result && result.status === 1) {
+            // Transaction successful
+            GameSounds.play('upgrade');
+            showNotification(`✓ Successfully upgraded to level ${buildingLevel} (${currentUpgrades + 1} upgrade${currentUpgrades + 1 !== 1 ? 's' : ''})!`, 'success');
         }
-        showNotification(`Upgraded to Level ${upgradeTargetLevel}!`, 'success');
+    } catch (error) {
+        console.error('Upgrade error:', error);
+        showNotification(`Upgrade failed: ${error.message}`, 'error');
     }
 }
 
@@ -2882,8 +2880,6 @@ function openUpgradeModal(tileIndex) {
     if (!data) return;
 
     window.gameManager.selectedTileIndex = tileIndex;
-    const currentLevel = data.upgrades + 1;
-    upgradeTargetLevel = Math.min(currentLevel + 1, GAME_CONFIG.UPGRADE.MAX_LEVEL + 1);
 
     // Set planet image
     const upgradeImg = document.getElementById('upgrade-module-img');
@@ -2891,51 +2887,14 @@ function openUpgradeModal(tileIndex) {
         upgradeImg.src = `kenney_planets/Planets/${data.module.sprite}`;
     }
 
+    // Set planet name
     document.getElementById('upgrade-module-name').textContent = data.module.name;
-    document.getElementById('upgrade-current-level').textContent = `Current: Level ${currentLevel}`;
 
-    if (currentLevel >= GAME_CONFIG.UPGRADE.MAX_LEVEL + 1) {
-        document.getElementById('upgrade-target-level').textContent = 'MAX';
-        document.getElementById('upgrade-levels-info').textContent = 'Already at max level';
-        document.getElementById('upgrade-cost').textContent = '⚡ 0';
-        document.getElementById('upgrade-boost').textContent = '+0/hr';
-        document.getElementById('upgrade-btn').disabled = true;
+    // Update all display values
+    updateUpgradeDisplay();
 
-        // Disable level adjustment buttons
-        const minusBtn = document.querySelector('.level-btn[onclick="adjustTargetLevel(-1)"]');
-        const plusBtn = document.querySelector('.level-btn[onclick="adjustTargetLevel(1)"]');
-        if (minusBtn) {
-            minusBtn.disabled = true;
-            minusBtn.style.opacity = '0.3';
-            minusBtn.style.cursor = 'not-allowed';
-        }
-        if (plusBtn) {
-            plusBtn.disabled = true;
-            plusBtn.style.opacity = '0.3';
-            plusBtn.style.cursor = 'not-allowed';
-        }
-    } else {
-        updateUpgradeDisplay();
-    }
-
+    // Open modal
     openModal('upgrade-modal');
-}
-
-function startMoveMode() {
-    if (!window.gameManager) return;
-
-    GameSounds.play('click');
-
-    const tileIndex = window.gameManager.selectedTileIndex;
-    if (tileIndex === null) return;
-
-    closeModal('upgrade-modal');
-
-    // Mode déplacement activé
-    window.gameManager.isMovingModule = true;
-    window.gameManager.movingFromIndex = tileIndex;
-
-    showNotification('Click on an empty tile to move the planet', 'info');
 }
 
 // ==========================================
@@ -3723,7 +3682,7 @@ class GameScene extends Phaser.Scene {
 // ============================================
 
 const CONTRACTS = {
-    cosmicYield: '0xC1Ddfd953567e9012A32dECD6621ce1D09ab619f',
+    cosmicYield: '0xdd6E4cb8F9262812e4Bad57d7B7E11c53CaE53d6',
     usdt: '0x04B0A46F87182FD00C9Ef077b14c1c2bfa7Fe3Ef',
     chainId: 97 // BSC Testnet
 };
@@ -3787,12 +3746,14 @@ class Web3GameManager {
 
         // Wait for button to be in DOM
         const waitForButton = () => {
-            const btn = document.getElementById('connect-wallet-btn');
-            if (!btn) {
+            const connectBtn = document.getElementById('connect-wallet-btn');
+            const disconnectBtn = document.getElementById('disconnect-wallet-btn');
+            if (!connectBtn || !disconnectBtn) {
                 setTimeout(waitForButton, 100);
                 return;
             }
-            btn.addEventListener('click', () => this.connectWallet());
+            connectBtn.addEventListener('click', () => this.connectWallet());
+            disconnectBtn.addEventListener('click', () => this.disconnectWallet());
         };
         waitForButton();
 
@@ -3862,6 +3823,24 @@ class Web3GameManager {
         }
     }
 
+    disconnectWallet() {
+        console.log('[Web3] disconnectWallet() called');
+        this.provider = null;
+        this.signer = null;
+        this.userAddress = null;
+        this.cosmicYieldContract = null;
+        this.usdtContract = null;
+        this.isConnected = false;
+        this.energy = 0;
+        this.plasma = 0;
+        this.perHour = 0;
+        this.modules = new Array(360).fill(0);
+        this.moduleLevels = {};
+        this.ally = null;
+        this.updateWalletUI();
+        console.log('[Web3] Wallet disconnected');
+    }
+
     async switchNetwork() {
         try {
             await window.ethereum.request({
@@ -3900,16 +3879,19 @@ class Web3GameManager {
         const addressEl = document.getElementById('wallet-address');
         const networkEl = document.getElementById('wallet-network');
         const connectBtn = document.getElementById('connect-wallet-btn');
+        const disconnectBtn = document.getElementById('disconnect-wallet-btn');
 
         if (this.isConnected) {
             addressEl.textContent = this.userAddress.substring(0, 6) + '...' + this.userAddress.substring(38);
             networkEl.textContent = 'Network: ' + CHAIN_NAME[CONTRACTS.chainId];
             connectBtn.style.display = 'none';
+            disconnectBtn.style.display = 'block';
             panel.classList.add('connected');
         } else {
             addressEl.textContent = 'Not Connected';
             networkEl.textContent = 'Network: Disconnected';
             connectBtn.style.display = 'block';
+            disconnectBtn.style.display = 'none';
             panel.classList.remove('connected');
         }
     }
