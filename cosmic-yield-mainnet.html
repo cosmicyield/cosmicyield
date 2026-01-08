@@ -941,10 +941,10 @@
 
         .percentage-btn {
             padding: 0.75rem;
-            background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,204,102,0.1));
-            border: 2px solid var(--color-success);
+            background: linear-gradient(135deg, rgba(0,136,255,0.1), rgba(0,102,204,0.1));
+            border: 2px solid #0088ff;
             border-radius: 8px;
-            color: var(--color-success);
+            color: #0088ff;
             font-weight: bold;
             font-size: 0.9rem;
             cursor: pointer;
@@ -953,9 +953,9 @@
         }
 
         .percentage-btn:hover {
-            background: linear-gradient(135deg, rgba(0,255,136,0.3), rgba(0,204,102,0.3));
+            background: linear-gradient(135deg, rgba(0,136,255,0.3), rgba(0,102,204,0.3));
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,255,136,0.3);
+            box-shadow: 0 4px 12px rgba(0,136,255,0.3);
         }
 
         .percentage-btn:active {
@@ -4210,7 +4210,7 @@ class Web3GameManager {
         const balance = await this.getUSDTBalance();
         const el = document.getElementById('usdt-balance-display');
         if (el) {
-            el.textContent = `${GameHelpers.formatNumber(balance)} USDT`;
+            el.textContent = `${balance.toFixed(2)} USDT`;
         }
         return balance;
     }
