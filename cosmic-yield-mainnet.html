@@ -939,6 +939,29 @@
             font-family: var(--font-display);
         }
 
+        .percentage-btn {
+            padding: 0.75rem;
+            background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,204,102,0.1));
+            border: 2px solid var(--color-success);
+            border-radius: 8px;
+            color: var(--color-success);
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--font-display);
+        }
+
+        .percentage-btn:hover {
+            background: linear-gradient(135deg, rgba(0,255,136,0.3), rgba(0,204,102,0.3));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,255,136,0.3);
+        }
+
+        .percentage-btn:active {
+            transform: translateY(0);
+        }
+
         /* Upgrade Panel */
         .upgrade-panel { text-align: center; }
 
@@ -1464,10 +1487,24 @@
                 <button class="modal-close" onclick="closeModal('purchase-modal')">&times;</button>
             </div>
             <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">Your USDT Balance</div>
+                    <div id="usdt-balance-display" style="font-size: 1.5rem; color: var(--color-energy); font-weight: bold;">
+                        Loading...
+                    </div>
+                </div>
+
                 <div style="text-align: center; margin-bottom: 1.5rem;">
                     <div style="font-size: 1rem; color: #00ff88; margin-bottom: 0.5rem;">
                         Rate: <strong>1 USDT = 1,000 Energy</strong> (BNB Chain)
                     </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="percentage-btn" onclick="setBuyPercentage(25)">25%</button>
+                    <button class="percentage-btn" onclick="setBuyPercentage(50)">50%</button>
+                    <button class="percentage-btn" onclick="setBuyPercentage(75)">75%</button>
+                    <button class="percentage-btn" onclick="setBuyPercentage(100)">MAX</button>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
@@ -1518,13 +1555,22 @@
                 <button class="modal-close" onclick="closeModal('sell-modal')">&times;</button>
             </div>
             <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">Your Plasma Balance</div>
+                    <div id="sell-plasma-balance" style="font-size: 1.5rem; color: var(--color-plasma); font-weight: bold;">0</div>
+                </div>
+
                 <div style="text-align: center; margin-bottom: 1.5rem;">
                     <div style="font-size: 1rem; color: #ff8800; margin-bottom: 0.5rem;">
                         Rate: <strong>1,000 Plasma = 1 USDT</strong> (BNB Chain)
                     </div>
-                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">
-                        Your Plasma: <span id="sell-plasma-balance" style="color: var(--color-plasma); font-weight: bold;">0</span>
-                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="percentage-btn" onclick="setSellPercentage(25)">25%</button>
+                    <button class="percentage-btn" onclick="setSellPercentage(50)">50%</button>
+                    <button class="percentage-btn" onclick="setSellPercentage(75)">75%</button>
+                    <button class="percentage-btn" onclick="setSellPercentage(100)">MAX</button>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
@@ -2331,6 +2377,11 @@ function openModal(modalId) {
         setSwapDirection('plasma');
     }
 
+    // Refresh USDT balance when opening purchase modal
+    if (modalId === 'purchase-modal' && window.web3Manager) {
+        window.web3Manager.refreshUSDTBalance();
+    }
+
     // Désactiver l'input Phaser pour éviter les clics sur la grille
     if (window.gameScene) {
         window.gameScene.input.enabled = false;
@@ -2407,6 +2458,29 @@ async function sellCustomAmount() {
     await sellPlasma(Math.floor(amount));
 }
 
+function setSellPercentage(percentage) {
+    if (!window.web3Manager || !window.web3Manager.userAddress) {
+        showNotification('Please connect your wallet first', 'error');
+        return;
+    }
+
+    GameSounds.play('click');
+
+    // Get estimated plasma balance from Web3 manager
+    const plasmaBalance = window.web3Manager.getEstimatedPlasma();
+
+    if (plasmaBalance === 0) {
+        showNotification('No plasma available', 'error');
+        return;
+    }
+
+    // Calculate amount based on percentage
+    const amount = Math.floor((plasmaBalance * percentage) / 100);
+
+    // Set custom input field
+    document.getElementById('custom-plasma-amount').value = amount;
+}
+
 async function purchaseEnergy(usdtAmount) {
     GameSounds.play('click');
     // Vérifier montant minimum
@@ -2446,6 +2520,29 @@ async function purchaseCustomAmount() {
     }
 
     await purchaseEnergy(Math.floor(amount));
+}
+
+async function setBuyPercentage(percentage) {
+    if (!window.web3Manager || !window.web3Manager.userAddress) {
+        showNotification('Please connect your wallet first', 'error');
+        return;
+    }
+
+    GameSounds.play('click');
+
+    // Get USDT balance
+    const usdtBalance = await window.web3Manager.getUSDTBalance();
+
+    if (usdtBalance === 0) {
+        showNotification('No USDT in wallet', 'error');
+        return;
+    }
+
+    // Calculate amount based on percentage
+    const amount = (usdtBalance * percentage) / 100;
+
+    // Set custom input field
+    document.getElementById('custom-usdt-amount').value = amount.toFixed(2);
 }
 
 // ========================================
@@ -2685,22 +2782,45 @@ function selectModuleToBuild(moduleId) {
     console.log('[DEBUG selectModuleToBuild] DONE');
 }
 
-function executeRaid() {
+async function executeRaid() {
     if (!window.gameManager) return;
 
-    // Jouer le son de raid
-    GameSounds.play('raid');
+    GameSounds.play('click');
 
     const winChance = parseInt(document.getElementById('win-chance-slider').value);
-    const result = window.gameManager.executeRaid(winChance);
 
-    if (result) {
-        if (result.isWin) {
-            showNotification(`🎉 VICTORY! +${GameHelpers.formatNumber(result.reward)} energy!`, 'reward');
-        } else {
-            showNotification(`💥 Defeat... +${GameHelpers.formatNumber(result.reward)} energy (consolation)`, 'error');
+    // Validate
+    if (winChance < 40 || winChance > 60) {
+        showNotification('Win chance must be between 40% and 60%', 'error');
+        return;
+    }
+
+    // Check perHour
+    if (window.web3Manager.perHour === 0) {
+        showNotification('Build modules first!', 'error');
+        return;
+    }
+
+    // Check wallet
+    if (!window.web3Manager || !window.web3Manager.userAddress) {
+        showNotification('Please connect your wallet first', 'error');
+        return;
+    }
+
+    // Close modal before transaction
+    closeModal('raid-modal');
+
+    try {
+        // Call Web3 method
+        const result = await window.web3Manager.battle(winChance);
+
+        if (result && result.status === 1) {
+            GameSounds.play('raid-success');
+            showNotification(`✓ Raid successful!`, 'success');
         }
-        closeModal('raid-modal');
+    } catch (error) {
+        console.error('Raid error:', error);
+        showNotification(`Raid failed: ${error.message}`, 'error');
     }
 }
 
@@ -2754,32 +2874,49 @@ function setSwapAmount(percentage) {
     document.getElementById('swap-output').textContent = `${outputIcon} ${GameHelpers.formatNumber(output)}`;
 }
 
-function executeSwap() {
+async function executeSwap() {
     if (!window.gameManager) return;
 
-    const amount = parseInt(document.getElementById('swap-amount').value) || 0;
+    GameSounds.play('click');
 
-    if (swapDirection === 'plasma') {
-        if (window.gameManager.swapPlasmaToEnergy(amount)) {
-            document.getElementById('swap-amount').value = '';
-            document.getElementById('swap-output').textContent = '⚡ 0';
-            closeModal('swap-modal');
+    const direction = swapDirection;
+    const inputAmount = parseInt(document.getElementById('swap-amount').value) || 0;
+
+    if (isNaN(inputAmount) || inputAmount <= 0) {
+        showNotification('Invalid amount', 'error');
+        return;
+    }
+
+    // Check wallet
+    if (!window.web3Manager || !window.web3Manager.userAddress) {
+        showNotification('Please connect your wallet first', 'error');
+        return;
+    }
+
+    if (direction === 'plasma') {
+        // Plasma → Energy: Call contract
+        if (window.web3Manager.plasma < inputAmount) {
+            showNotification('Not enough plasma!', 'error');
+            return;
+        }
+
+        closeModal('swap-modal');
+
+        try {
+            const result = await window.web3Manager.swapPlasmaToEnergy(inputAmount);
+
+            if (result && result.status === 1) {
+                showNotification(`✓ Swapped ${GameHelpers.formatNumber(inputAmount)} plasma to ${GameHelpers.formatNumber(inputAmount * 2)} energy!`, 'success');
+                document.getElementById('swap-amount').value = '';
+                document.getElementById('swap-output').textContent = '⚡ 0';
+            }
+        } catch (error) {
+            console.error('Swap error:', error);
+            showNotification(`Swap failed: ${error.message}`, 'error');
         }
     } else {
-        // Energy → Plasma
-        const plasmaGained = Math.floor(amount * GAME_CONFIG.SWAP.ENERGY_TO_PLASMA_RATE);
-        if (amount > 0 && window.gameManager.energy >= amount) {
-            window.gameManager.energy -= amount;
-            window.gameManager.plasma += plasmaGained;
-            window.gameManager.save();
-            window.gameManager.updateUI();
-            showNotification(`Swapped ${GameHelpers.formatNumber(amount)} energy for ${GameHelpers.formatNumber(plasmaGained)} plasma!`, 'success');
-            document.getElementById('swap-amount').value = '';
-            document.getElementById('swap-output').textContent = '💎 0';
-            closeModal('swap-modal');
-        } else {
-            showNotification('Not enough energy!', 'error');
-        }
+        // Energy → Plasma: NOT SUPPORTED ON-CHAIN
+        showNotification('Energy → Plasma swap is not supported on-chain yet', 'error');
     }
 }
 
@@ -4045,6 +4182,37 @@ class Web3GameManager {
             },
             'Swapping Plasma to Energy...'
         );
+    }
+
+    async battle(winChance) {
+        return this.executeTransaction(
+            async () => {
+                const tx = await this.cosmicYieldContract.battle(winChance);
+                return tx;
+            },
+            'Launching Raid...'
+        );
+    }
+
+    async getUSDTBalance() {
+        try {
+            if (!this.isConnected || !this.usdtContract) return 0;
+
+            const balance = await this.usdtContract.balanceOf(this.userAddress);
+            return Number(balance) / 1e18; // Convert from wei to USDT
+        } catch (error) {
+            console.error('Error getting USDT balance:', error);
+            return 0;
+        }
+    }
+
+    async refreshUSDTBalance() {
+        const balance = await this.getUSDTBalance();
+        const el = document.getElementById('usdt-balance-display');
+        if (el) {
+            el.textContent = `${GameHelpers.formatNumber(balance)} USDT`;
+        }
+        return balance;
     }
 
     async executeTransaction(txFunction, statusMsg) {
