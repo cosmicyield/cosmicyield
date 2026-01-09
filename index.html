@@ -885,17 +885,16 @@
                 for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
                     const rpcUrl = RPC_ENDPOINTS[(currentRpcIndex + i) % RPC_ENDPOINTS.length];
                     try {
-                        console.log(`[TVL] Trying RPC: ${rpcUrl}`);
                         provider = new ethers.JsonRpcProvider(rpcUrl);
 
-                        // Test connection
+                        // Test connection (silently)
                         await provider.getBlockNumber();
 
                         console.log(`[TVL] ✓ Connected to: ${rpcUrl}`);
                         currentRpcIndex = (currentRpcIndex + i) % RPC_ENDPOINTS.length;
                         break;
                     } catch (err) {
-                        console.warn(`[TVL] Failed RPC ${rpcUrl}:`, err.message);
+                        // Silently try next RPC without logging errors
                         lastError = err;
                         provider = null;
                     }
