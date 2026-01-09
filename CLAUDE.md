@@ -3,8 +3,8 @@
 > **Note for Claude:** Always check the `## 🔄 Session Hand-off` section first to see where the last session left off.
 
 ## 🔄 Session Hand-off (Context for /clear)
-- **Current Goal:** ✅ COMPLETE - All UI polish & testnet improvements (January 9, 2026 - Session 3)
-- **Last Significant Change:** Added faucet button for claiming 1000 Fake USDT, fixed all modal previews, raid cooldown working
+- **Current Goal:** ✅ COMPLETE - UI links + TVL banner + Leaderboard popup (January 9, 2026 - Session 4)
+- **Last Significant Change:** Updated all "Play Cosmic Yield" buttons to link to mainnet, added TVL banner with dynamic data, created leaderboard popup UI, made raid cooldown visible
 - **Technical Context:**
   - All core features implemented, tested, and WORKING on testnet
   - Game deployed to GitHub (cosmicyield/cosmicyield) and Render
@@ -85,14 +85,59 @@
   - 📋 TODO: Test remaining functions thoroughly before mainnet
   - 📋 TODO: Security audit before mainnet deployment
 
-- **Session Statistics (Jan 9, 2026):**
+- **Session Statistics (Jan 9, 2026 - Session 3):**
   - 7 commits created
   - 6 major bug fixes
   - 1 new feature (faucet)
   - All deploys to Render automatic
   - Zero regressions
 
-- **Active Blockers:** None - Everything is working! ✅
+- **What was completed in this session (January 9, 2026 - Session 4):**
+  1. **Updated all "Play Cosmic Yield" button links**
+     - index.html (2 locations): Changed from alert to link cosmic-yield-mainnet.html
+     - cosmic-yield-docs.html (1 location): Changed header "Play On-Chain" button
+     - docs.html Official Links section: Added new link to Play On-Chain
+
+  2. **Removed "2× Swap Rate" from By The Numbers section**
+     - index.html line 680-683: Deleted stat item
+     - Stats now show only 3 items (360 tiles, 8 types, 10 levels)
+     - Swap rate is still correct in actual game (Plasma → Energy ×2)
+
+  3. **Added Leaderboard popup to index.html**
+     - 4th button added to hero section and CTA section
+     - Scrollable modal overlay (responsive)
+     - "Coming Soon" placeholder with feature list
+     - Shows planned stats: Plasma, Energy, perHour, Allies, Battles
+     - ESC key or click outside to close
+
+  4. **Updated On-Chain Mode section in docs**
+     - Changed "Coming Soon" to "🚀 LIVE on BSC Testnet"
+     - Added "Play On-Chain" button alongside "Try Practice Mode"
+     - Investment disclaimer still present
+
+  5. **Added TVL Banner to cosmic-yield-mainnet.html**
+     - Fixed position at top center of page
+     - Shows: Total Value Locked (USDT), Days Active, Active Players
+     - Dynamic TVL: queries USDT balance in CosmicYield contract
+     - Dynamic Days: calculated from Jan 9, 2026 deployment date
+     - Active Players: shows "?" (needs The Graph backend for full implementation)
+     - Added updateTVLBanner() method to Web3GameManager
+     - Calls TVL update on wallet connection
+
+  6. **Made raid cooldown visible**
+     - Changed style from `display: none` to `display: block`
+     - Added red color (#ff4444) and bold font weight
+     - Cooldown countdown works automatically (24-hour timer)
+
+- **Session Statistics (Jan 9, 2026 - Session 4):**
+  - 6 files modified (index.html, docs, mainnet, CLAUDE.md)
+  - 0 new smart contract deployments
+  - 1 new UI feature (leaderboard)
+  - 4 UI improvements (links, buttons, banner, visibility)
+  - 1 visual enhancement (cooldown color)
+  - All changes deployed to Render automatic
+
+- **Active Blockers:** None - All changes live! ✅
 
 ---
 

@@ -1290,9 +1290,87 @@
                 opacity: 1;
             }
         }
+
+        /* TVL Banner */
+        .tvl-banner {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 40px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, rgba(0, 10, 30, 0.8), rgba(10, 20, 40, 0.8));
+            border: 2px solid rgba(0, 240, 255, 0.3);
+            border-top: none;
+            border-radius: 0 0 15px 15px;
+            backdrop-filter: blur(10px);
+            align-items: center;
+            min-width: 500px;
+        }
+
+        .tvl-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tvl-label {
+            font-size: 0.8rem;
+            color: rgba(0, 240, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: var(--font-display);
+        }
+
+        .tvl-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--color-primary), rgba(0, 240, 255, 0.5));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-family: var(--font-display);
+        }
+
+        @media (max-width: 768px) {
+            .tvl-banner {
+                gap: 15px;
+                padding: 10px 15px;
+                min-width: auto;
+                width: 95%;
+                font-size: 0.9rem;
+            }
+
+            .tvl-value {
+                font-size: 1rem;
+            }
+
+            .tvl-label {
+                font-size: 0.7rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- TVL Banner -->
+    <div class="tvl-banner">
+        <div class="tvl-item">
+            <div class="tvl-label">Total Value Locked</div>
+            <div class="tvl-value" id="tvl-value">$0</div>
+        </div>
+        <div class="tvl-item">
+            <div class="tvl-label">Days Active</div>
+            <div class="tvl-value" id="days-active">0</div>
+        </div>
+        <div class="tvl-item">
+            <div class="tvl-label">Active Players</div>
+            <div class="tvl-value" id="active-players">?</div>
+        </div>
+    </div>
+
     <!-- Loading Screen -->
     <div id="loading-screen">
         <h1 class="loading-title">COSMIC YIELD</h1>
@@ -1443,7 +1521,7 @@
                     <div class="reward-value" id="raid-reward">⚡ 0</div>
                 </div>
                 <button class="raid-btn" id="raid-btn" onclick="executeRaid()">🚀 LAUNCH RAID</button>
-                <p class="cooldown-text" id="raid-cooldown" style="display: none;">Cooldown: <span id="cooldown-time">24:00:00</span></p>
+                <p class="cooldown-text" id="raid-cooldown" style="display: block; color: #ff4444; font-weight: bold;">Cooldown: <span id="cooldown-time">24:00:00</span></p>
             </div>
         </div>
     </div>
@@ -4030,6 +4108,9 @@ class Web3GameManager {
             await this.loadPlanetData();
             this.updateUI();
 
+            // Update TVL banner
+            await this.updateTVLBanner();
+
             // Start dynamic UI update loop (every 100ms for smooth counters)
             this.startProductionLoop();
 
@@ -4559,6 +4640,35 @@ class Web3GameManager {
     executeRaid(winChance) {
         // Async version handled by battle() method
         return null;
+    }
+
+    async updateTVLBanner() {
+        try {
+            // 1. Get TVL: Total USDT balance in the contract
+            const contractAddress = CONTRACTS.cosmicYield;
+            const tvlWei = await this.usdtContract.balanceOf(contractAddress);
+            const tvl = Number(tvlWei) / 1e18;  // USDT has 18 decimals
+            const tvlFormatted = tvl.toLocaleString('en-US', { maximumFractionDigits: 2 });
+
+            // 2. Calculate days since deployment (Testnet deployed Jan 9, 2026)
+            const deployTimestamp = new Date('2026-01-09').getTime();
+            const daysActive = Math.floor((Date.now() - deployTimestamp) / (1000 * 60 * 60 * 24));
+
+            // 3. Active players: Show "?" until we have proper indexing
+            // Would need The Graph or custom backend to query all unique addresses from events
+            const activePlayersValue = '?';
+
+            // 4. Update UI
+            document.getElementById('tvl-value').textContent = '$' + tvlFormatted;
+            document.getElementById('days-active').textContent = daysActive;
+            document.getElementById('active-players').textContent = activePlayersValue;
+
+            console.log(`[TVL] Updated: $${tvlFormatted}, ${daysActive} days active`);
+        } catch (error) {
+            console.error('[TVL] Error updating banner:', error);
+            // Show error indicators without breaking the game
+            document.getElementById('tvl-value').textContent = 'Error';
+        }
     }
 }
 

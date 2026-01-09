@@ -617,8 +617,9 @@
             <p class="hero-subtitle">Build your space mining empire. Earn real rewards. Conquer the cosmos.</p>
             <div class="hero-buttons">
                 <a href="cosmic-yield-topdown.html" class="btn-primary">🎮 Practice Mode<br><span style="font-size: 0.7rem; text-transform: none; opacity: 0.9;">(no wallet connection required)</span></a>
-                <a href="#" class="btn-onchain" onclick="alert('Coming soon! Connect your wallet to play on BSC.'); return false;">🚀 Play Cosmic Yield<br><span style="font-size: 0.7rem; text-transform: none; opacity: 0.9;">(wallet required)</span></a>
+                <a href="cosmic-yield-mainnet.html" class="btn-onchain">🚀 Play Cosmic Yield<br><span style="font-size: 0.7rem; text-transform: none; opacity: 0.9;">(wallet required)</span></a>
                 <a href="cosmic-yield-calculator.html" class="btn-secondary">📊 Calculate ROI</a>
+                <a href="#" class="btn-secondary" onclick="openLeaderboard(); return false;">🏆 Leaderboard<br><span style="font-size: 0.7rem; text-transform: none; opacity: 0.9;">(coming soon)</span></a>
             </div>
         </div>
     </section>
@@ -677,10 +678,6 @@
                     <div class="stat-number">10</div>
                     <div class="stat-label">Levels</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number">2×</div>
-                    <div class="stat-label">Swap Rate</div>
-                </div>
             </div>
         </div>
     </section>
@@ -691,8 +688,9 @@
             <p class="cta-subtitle">Calculate your potential returns or jump straight into the game. Your cosmic empire awaits.</p>
             <div class="hero-buttons">
                 <a href="cosmic-yield-topdown.html" class="btn-primary">🎮 Practice Mode<br><span style="font-size: 0.7rem; text-transform: none; opacity: 0.9;">(no wallet connection required)</span></a>
-                <a href="#" class="btn-onchain" onclick="alert('Coming soon! Connect your wallet to play on BSC.'); return false;">🚀 Play Cosmic Yield<br><span style="font-size: 0.7rem; text-transform: none; opacity: 0.9;">(wallet required)</span></a>
+                <a href="cosmic-yield-mainnet.html" class="btn-onchain">🚀 Play Cosmic Yield<br><span style="font-size: 0.7rem; text-transform: none; opacity: 0.9;">(wallet required)</span></a>
                 <a href="cosmic-yield-calculator.html" class="btn-secondary">📊 Calculate ROI</a>
+                <a href="#" class="btn-secondary" onclick="openLeaderboard(); return false;">🏆 Leaderboard</a>
             </div>
         </div>
     </section>
@@ -809,6 +807,218 @@
                 bgMusic.play();
             }
         });
+
+        // Leaderboard Functions
+        function openLeaderboard() {
+            document.getElementById('leaderboard-modal').style.display = 'flex';
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboard-modal').style.display = 'none';
+        }
+
+        // Close leaderboard with ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('leaderboard-modal').style.display === 'flex') {
+                closeLeaderboard();
+            }
+        });
+
+        // Close leaderboard when clicking outside the modal
+        document.getElementById('leaderboard-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'leaderboard-modal') {
+                closeLeaderboard();
+            }
+        });
     </script>
+
+    <!-- Leaderboard Modal Overlay -->
+    <div id="leaderboard-modal" class="leaderboard-modal-overlay" style="display: none;">
+        <div class="leaderboard-modal">
+            <div class="leaderboard-header">
+                <h2>🏆 Leaderboard (Coming Soon)</h2>
+                <button class="close-btn" onclick="closeLeaderboard()">×</button>
+            </div>
+            <div class="leaderboard-content">
+                <p class="leaderboard-notice">
+                    The leaderboard will display live stats from the BSC smart contract once we implement
+                    off-chain indexing (The Graph or custom backend).
+                </p>
+                <div class="leaderboard-preview">
+                    <h3>Planned Stats per Player:</h3>
+                    <ul>
+                        <li>💎 Plasma Balance (ranking metric)</li>
+                        <li>⚡ Energy + Production Rate (perHour)</li>
+                        <li>🤝 Allies Count + Energy from Allies</li>
+                        <li>⚔️ Battle Stats (wins, streak)</li>
+                    </ul>
+                </div>
+                <div class="leaderboard-table-placeholder">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Wallet</th>
+                                <th>Plasma</th>
+                                <th>Energy</th>
+                                <th>perHour</th>
+                                <th>Allies</th>
+                                <th>Battles</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="placeholder-row">
+                                <td colspan="7">Data will be loaded from blockchain...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .leaderboard-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            overflow-y: auto;
+        }
+
+        .leaderboard-modal {
+            background: linear-gradient(135deg, rgba(0, 10, 30, 0.95), rgba(10, 20, 40, 0.95));
+            border: 2px solid rgba(0, 240, 255, 0.5);
+            border-radius: 20px;
+            max-width: 90%;
+            max-height: 85vh;
+            width: 1000px;
+            overflow-y: auto;
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.3);
+        }
+
+        .leaderboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            border-bottom: 2px solid rgba(0, 240, 255, 0.3);
+            gap: 20px;
+        }
+
+        .leaderboard-header h2 {
+            margin: 0;
+            color: var(--color-primary);
+            font-size: 2rem;
+        }
+
+        .close-btn {
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid rgba(255, 0, 0, 0.5);
+            color: #ff4444;
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 0, 0, 0.4);
+            transform: scale(1.1);
+        }
+
+        .leaderboard-content {
+            padding: 30px;
+        }
+
+        .leaderboard-notice {
+            background: rgba(255, 200, 0, 0.1);
+            border-left: 4px solid #ffc800;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: #ffc800;
+            line-height: 1.6;
+        }
+
+        .leaderboard-preview h3 {
+            color: var(--color-primary);
+            margin-bottom: 15px;
+            margin-top: 0;
+        }
+
+        .leaderboard-preview ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .leaderboard-preview li {
+            padding: 10px;
+            background: rgba(0, 240, 255, 0.05);
+            margin-bottom: 8px;
+            border-radius: 5px;
+            border-left: 3px solid var(--color-primary);
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .leaderboard-table th {
+            background: rgba(0, 240, 255, 0.2);
+            color: var(--color-primary);
+            padding: 15px;
+            text-align: left;
+            border-bottom: 2px solid var(--color-primary);
+            font-weight: 600;
+        }
+
+        .leaderboard-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.1);
+            color: #e0e0e0;
+        }
+
+        .placeholder-row {
+            text-align: center;
+            font-style: italic;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            .leaderboard-modal {
+                width: 95%;
+                max-height: 90vh;
+            }
+
+            .leaderboard-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .leaderboard-header h2 {
+                font-size: 1.5rem;
+            }
+
+            .leaderboard-table {
+                font-size: 0.9rem;
+            }
+
+            .leaderboard-table th, .leaderboard-table td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
 </body>
 </html>
