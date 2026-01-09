@@ -4658,13 +4658,22 @@ class Web3GameManager {
         return null;
     }
 
+    formatNumber(num) {
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1) + 'M';
+        } else if (num >= 1000) {
+            return (num / 1000).toFixed(1) + 'K';
+        }
+        return num.toFixed(0);
+    }
+
     async updateTVLBanner() {
         try {
             // 1. Get TVL: Total USDT balance in the contract
             const contractAddress = CONTRACTS.cosmicYield;
             const tvlWei = await this.usdtContract.balanceOf(contractAddress);
             const tvl = Number(tvlWei) / 1e18;  // USDT has 18 decimals
-            const tvlFormatted = tvl.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            const tvlFormatted = '$' + this.formatNumber(tvl);
 
             // 2. Calculate days since deployment (Testnet deployed Jan 9, 2026)
             const deployTimestamp = new Date('2026-01-09').getTime();
@@ -4675,15 +4684,17 @@ class Web3GameManager {
             const activePlayersValue = '?';
 
             // 4. Update UI
-            document.getElementById('tvl-value').textContent = '$' + tvlFormatted;
+            document.getElementById('tvl-value').textContent = tvlFormatted;
             document.getElementById('days-active').textContent = daysActive;
             document.getElementById('active-players').textContent = activePlayersValue;
 
-            console.log(`[TVL] Updated: $${tvlFormatted}, ${daysActive} days active`);
+            console.log(`[TVL] Updated: ${tvlFormatted}, ${daysActive} days active`);
         } catch (error) {
             console.error('[TVL] Error updating banner:', error);
             // Show error indicators without breaking the game
-            document.getElementById('tvl-value').textContent = 'Error';
+            document.getElementById('tvl-value').textContent = '$0';
+            document.getElementById('days-active').textContent = '0';
+            document.getElementById('active-players').textContent = '?';
         }
     }
 }

@@ -832,7 +832,10 @@
                 closeLeaderboard();
             }
         });
+    </script>
 
+    <!-- Web3 TVL Banner Script -->
+    <script>
         // =====================================================
         // WEB3 TVL BANNER - Dynamic blockchain data
         // =====================================================
@@ -849,8 +852,19 @@
             'function balanceOf(address owner) view returns (uint256)'
         ];
 
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toFixed(0);
+        }
+
         async function updateTVLBanner() {
             try {
+                console.log('[TVL] Starting update...');
+
                 // Connect to BSC Testnet via public RPC
                 const provider = new ethers.JsonRpcProvider('https://data-seed-prebsc-1-s1.binance.org:8545/');
 
@@ -860,12 +874,7 @@
                 // 1. Get TVL: Total USDT locked in CosmicYield contract
                 const tvlWei = await usdtContract.balanceOf(CONTRACTS.cosmicYield);
                 const tvl = Number(tvlWei) / 1e18;  // Convert from wei (18 decimals)
-                const tvlFormatted = tvl.toLocaleString('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                });
+                const tvlFormatted = '$' + formatNumber(tvl);
 
                 // 2. Calculate days since deployment (Jan 9, 2026)
                 const deployTimestamp = new Date('2026-01-09').getTime();
@@ -879,9 +888,9 @@
                 document.getElementById('days-active').textContent = daysActive;
                 document.getElementById('active-players').textContent = activePlayersValue;
 
-                console.log(`[TVL] Updated: ${tvlFormatted}, ${daysActive} days active`);
+                console.log(`[TVL] ✓ Updated: ${tvlFormatted}, ${daysActive} days active`);
             } catch (error) {
-                console.error('[TVL] Error updating banner:', error);
+                console.error('[TVL] ✗ Error updating banner:', error);
                 // Show fallback values on error
                 document.getElementById('tvl-value').textContent = '$0';
                 document.getElementById('days-active').textContent = '0';
@@ -889,19 +898,23 @@
             }
         }
 
-        // Initialize TVL on page load
-        if (typeof ethers !== 'undefined') {
-            updateTVLBanner();
-        } else {
-            console.warn('[TVL] Ethers.js not loaded, using static values');
-        }
+        // Wait for page to be fully loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('[TVL] DOM loaded, checking ethers...');
 
-        // Refresh TVL every 30 seconds
-        setInterval(() => {
+            // Initialize TVL on page load
             if (typeof ethers !== 'undefined') {
+                console.log('[TVL] Ethers.js detected, starting TVL updates...');
                 updateTVLBanner();
+
+                // Refresh TVL every 30 seconds
+                setInterval(() => {
+                    updateTVLBanner();
+                }, 30000);
+            } else {
+                console.warn('[TVL] Ethers.js not loaded, using static values');
             }
-        }, 30000);
+        });
     </script>
 
     <!-- Leaderboard Modal Overlay -->
