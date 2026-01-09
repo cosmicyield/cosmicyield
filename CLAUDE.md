@@ -543,6 +543,13 @@ if (savedMusicState === null || savedMusicState === 'true') {
 - [ ] Gas optimization review
 
 ### Low Priority (Nice to Have)
+- [ ] **Add Energy → Plasma swap to practice mode (cosmic-yield-topdown.html)**
+  - Currently only Plasma → Energy exists in both demo and mainnet
+  - Demo mode could allow bidirectional swap for learning purposes
+  - Ratio: Energy → Plasma (×0.5) - 1000 energy = 500 plasma
+  - NOT available on mainnet (no smart contract function)
+  - Reason: Smart contract prevents Energy → Plasma to avoid exploitation cycle (Buy Energy → Swap to Plasma → Sell Plasma for USDT)
+  - Location: Search for swap functionality in topdown demo
 - [ ] Add `moveBuilding()` function to smart contract (if user requests it)
   - Would require new contract deployment
   - Function signature: `moveBuilding(uint16 _fromTileId, uint16 _toTileId)`

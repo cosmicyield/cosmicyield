@@ -1412,15 +1412,10 @@
     <div class="modal-overlay" id="swap-modal">
         <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title">🔄 Swap Resources</h2>
+                <h2 class="modal-title">🔄 Swap: Plasma → Energy (×2)</h2>
                 <button class="modal-close" onclick="closeModal('swap-modal')">&times;</button>
             </div>
             <div class="swap-container">
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                    <button class="swap-direction-btn active" id="swap-dir-plasma" onclick="setSwapDirection('plasma')">💎 Plasma → ⚡ Energy (×2)</button>
-                    <button class="swap-direction-btn" id="swap-dir-energy" onclick="setSwapDirection('energy')">⚡ Energy → 💎 Plasma (×0.5)</button>
-                </div>
-
                 <div class="swap-balance">
                     <span style="color: rgba(255,255,255,0.6); font-size: 0.85rem;" id="swap-available-label">Available Plasma</span>
                     <div style="color: #aa00ff; font-size: 1.2rem; font-weight: bold;" id="swap-available-amount">💎 0</div>
@@ -2373,8 +2368,9 @@ function openModal(modalId) {
 
     // Initialiser le swap modal
     if (modalId === 'swap-modal' && window.gameManager) {
-        swapDirection = 'plasma';
-        setSwapDirection('plasma');
+        // Reset swap amount display
+        document.getElementById('swap-amount').value = '';
+        document.getElementById('swap-output').textContent = '⚡ 0';
     }
 
     // Refresh USDT balance when opening purchase modal
@@ -2824,37 +2820,7 @@ async function executeRaid() {
     }
 }
 
-let swapDirection = 'plasma'; // 'plasma' or 'energy'
-
-function setSwapDirection(direction) {
-    swapDirection = direction;
-
-    // Jouer le son de swap
-    GameSounds.play('swap');
-
-    // Update button states
-    document.getElementById('swap-dir-plasma').classList.toggle('active', direction === 'plasma');
-    document.getElementById('swap-dir-energy').classList.toggle('active', direction === 'energy');
-
-    // Update labels and available amount
-    if (direction === 'plasma') {
-        document.getElementById('swap-available-label').textContent = 'Available Plasma';
-        document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(window.gameManager.plasma)}`;
-        document.getElementById('swap-available-amount').style.color = '#aa00ff';
-        document.getElementById('swap-input-label').textContent = 'Plasma Amount';
-        document.getElementById('swap-output-label').textContent = 'You will receive (×2)';
-    } else {
-        document.getElementById('swap-available-label').textContent = 'Available Energy';
-        document.getElementById('swap-available-amount').textContent = `⚡ ${GameHelpers.formatNumber(window.gameManager.energy)}`;
-        document.getElementById('swap-available-amount').style.color = '#00f0ff';
-        document.getElementById('swap-input-label').textContent = 'Energy Amount';
-        document.getElementById('swap-output-label').textContent = 'You will receive (×0.5)';
-    }
-
-    // Reset input
-    document.getElementById('swap-amount').value = '';
-    document.getElementById('swap-output').textContent = swapDirection === 'plasma' ? '⚡ 0' : '💎 0';
-}
+const swapDirection = 'plasma'; // Only Plasma → Energy swap supported
 
 function setSwapAmount(percentage) {
     if (!window.gameManager) return;
@@ -4177,7 +4143,9 @@ class Web3GameManager {
     async swapPlasmaToEnergy(plasmaAmount) {
         return this.executeTransaction(
             async () => {
-                const tx = await this.cosmicYieldContract.swapPlasmaToEnergy(plasmaAmount);
+                // Convert to BigInt for smart contract
+                const amountBigInt = BigInt(Math.floor(plasmaAmount));
+                const tx = await this.cosmicYieldContract.swapPlasmaToEnergy(amountBigInt);
                 return tx;
             },
             'Swapping Plasma to Energy...'

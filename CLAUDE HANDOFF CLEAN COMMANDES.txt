@@ -1,0 +1,5 @@
+"Mets à jour la section Hand-off dans CLAUDE.md pour résumer notre travail en cours, puis je vais faire un /clear."
+
+/clear
+
+"Relis CLAUDE.md et reprends là où on s'est arrêté (voir section Hand-off)."
