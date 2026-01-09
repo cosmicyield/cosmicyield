@@ -826,12 +826,15 @@
             }
         });
 
-        // Close leaderboard when clicking outside the modal
-        document.getElementById('leaderboard-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'leaderboard-modal') {
-                closeLeaderboard();
-            }
-        });
+        // Close leaderboard when clicking outside the modal (wait for DOM)
+        const leaderboardModal = document.getElementById('leaderboard-modal');
+        if (leaderboardModal) {
+            leaderboardModal.addEventListener('click', (e) => {
+                if (e.target.id === 'leaderboard-modal') {
+                    closeLeaderboard();
+                }
+            });
+        }
     </script>
 
     <!-- Web3 TVL Banner Script -->
@@ -852,6 +855,16 @@
             'function balanceOf(address owner) view returns (uint256)'
         ];
 
+        // Multiple RPC endpoints for fallback
+        const RPC_ENDPOINTS = [
+            'https://bsc-testnet.public.blastapi.io',
+            'https://data-seed-prebsc-1-s1.binance.org:8545',
+            'https://data-seed-prebsc-2-s1.binance.org:8545',
+            'https://bsc-testnet-rpc.publicnode.com'
+        ];
+
+        let currentRpcIndex = 0;
+
         function formatNumber(num) {
             if (num >= 1000000) {
                 return (num / 1000000).toFixed(1) + 'M';
@@ -865,8 +878,32 @@
             try {
                 console.log('[TVL] Starting update...');
 
-                // Connect to BSC Testnet via public RPC
-                const provider = new ethers.JsonRpcProvider('https://data-seed-prebsc-1-s1.binance.org:8545/');
+                // Try RPC endpoints until one works
+                let provider = null;
+                let lastError = null;
+
+                for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
+                    const rpcUrl = RPC_ENDPOINTS[(currentRpcIndex + i) % RPC_ENDPOINTS.length];
+                    try {
+                        console.log(`[TVL] Trying RPC: ${rpcUrl}`);
+                        provider = new ethers.JsonRpcProvider(rpcUrl);
+
+                        // Test connection
+                        await provider.getBlockNumber();
+
+                        console.log(`[TVL] ✓ Connected to: ${rpcUrl}`);
+                        currentRpcIndex = (currentRpcIndex + i) % RPC_ENDPOINTS.length;
+                        break;
+                    } catch (err) {
+                        console.warn(`[TVL] Failed RPC ${rpcUrl}:`, err.message);
+                        lastError = err;
+                        provider = null;
+                    }
+                }
+
+                if (!provider) {
+                    throw new Error('All RPC endpoints failed: ' + lastError?.message);
+                }
 
                 // Initialize USDT contract (read-only)
                 const usdtContract = new ethers.Contract(CONTRACTS.usdt, USDT_ABI, provider);
