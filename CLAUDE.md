@@ -3,8 +3,8 @@
 > **Note for Claude:** Always check the `## 🔄 Session Hand-off` section first to see where the last session left off.
 
 ## 🔄 Session Hand-off (Context for /clear)
-- **Current Goal:** ✅ COMPLETE - UI links + TVL banner + Leaderboard popup (January 9, 2026 - Session 4)
-- **Last Significant Change:** Updated all "Play Cosmic Yield" buttons to link to mainnet, added TVL banner with dynamic data, created leaderboard popup UI, made raid cooldown visible
+- **Current Goal:** ✅ COMPLETE - Raid cooldown persistence + Dynamic TVL + Auto-refresh (January 9, 2026 - Session 5)
+- **Last Significant Change:** Fixed raid cooldown to survive page refresh (uses blockchain battleTime), added dynamic Web3 TVL banner to index.html, TVL auto-refreshes after every transaction
 - **Technical Context:**
   - All core features implemented, tested, and WORKING on testnet
   - Game deployed to GitHub (cosmicyield/cosmicyield) and Render
@@ -137,7 +137,42 @@
   - 1 visual enhancement (cooldown color)
   - All changes deployed to Render automatic
 
-- **Active Blockers:** None - All changes live! ✅
+- **What was completed in this session (January 9, 2026 - Session 5):**
+  1. **Fixed raid cooldown persistence** 🔧
+     - Modified loadPlanetData() to load battleTime from smart contract (line 4219-4223)
+     - Cooldown now survives page refresh and wallet reconnection
+     - Converted blockchain timestamp (seconds) to JavaScript (milliseconds)
+     - Added raidsCompleted initialization from battlesInRow field (line 4226-4229)
+     - No more localStorage needed - reads directly from blockchain
+
+  2. **Added TVL auto-refresh after transactions** ♻️
+     - updateTVLBanner() called after every successful transaction (line 4429)
+     - TVL updates when: buyEnergy, placeBuildings, sellPlasma, swap, upgrade, battle
+     - Ensures TVL banner always shows current contract balance
+     - Integrated in executeTransaction() success callback
+
+  3. **Made index.html TVL banner dynamic** 🌐
+     - Added ethers.js v6 CDN for Web3 support (line 11)
+     - Added BSC Testnet RPC connection (public node)
+     - updateTVLBanner() queries USDT contract balance in real-time (line 852-890)
+     - Days Active calculated from deployment date (Jan 9, 2026)
+     - Active Players shows "?" (needs The Graph - added to TODO)
+     - Auto-refresh every 30 seconds (line 900-904)
+     - Preserves existing cyan/pink color scheme (no CSS changes)
+
+  4. **Updated cosmic-yield-docs.html**
+     - Added "(coming soon)" to "Leaderboards and achievements" in Phase 3 roadmap (line 1326)
+     - Consistent with index.html leaderboard button style
+
+- **Session Statistics (Jan 9, 2026 - Session 5):**
+  - 4 files modified (mainnet.html, index.html, docs.html, CLAUDE.md)
+  - 1 major bug fix (raid cooldown persistence)
+  - 2 new features (TVL auto-refresh, dynamic index.html banner)
+  - 1 UI polish (docs leaderboard text)
+  - 0 new smart contract deployments
+  - All changes ready for git commit
+
+- **Active Blockers:** None - All features working! ✅
 
 ---
 
@@ -601,6 +636,14 @@ if (savedMusicState === null || savedMusicState === 'true') {
 - [ ] Test cross-account interactions (manager fee distribution)
 - [ ] Full security audit before mainnet deployment
 - [ ] Gas optimization review
+
+- [ ] **Implement active player tracking** (postponed from Session 5)
+  - Track wallets that buy energy for first time via EnergyBought events
+  - Options: The Graph subgraph (recommended) OR custom backend with database
+  - Display count in both index.html and mainnet.html TVL banners
+  - Currently shows "?" placeholder in both locations
+  - Would need to parse blockchain events from contract deployment to present
+  - Alternative: Count unique addresses from EnergyBought event logs
 
 ### Low Priority (Nice to Have)
 - [ ] **Add Energy → Plasma swap to practice mode (cosmic-yield-topdown.html)**

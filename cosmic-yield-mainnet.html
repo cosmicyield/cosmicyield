@@ -4215,6 +4215,19 @@ class Web3GameManager {
             this.ally = planetData.ally;
             this.claimTime = Number(planetData.claimTime);
 
+            // Load battleTime for raid cooldown persistence
+            const battleTime = Number(planetData.battleTime);
+            if (battleTime > 0) {
+                // Convert blockchain timestamp (seconds) to JavaScript (milliseconds)
+                this.lastRaidTime = battleTime * 1000;
+            }
+
+            // Load battlesInRow for raidsCompleted tracking
+            const battlesInRow = Number(planetData.battlesInRow);
+            if (battlesInRow > 0) {
+                this.raidsCompleted = battlesInRow;  // Approximation
+            }
+
             // Mark when we synced (for production estimation)
             this.lastSyncTime = Date.now();
 
@@ -4411,6 +4424,9 @@ class Web3GameManager {
                 setTimeout(async () => {
                     await this.loadPlanetData();
                     this.updateUI();
+
+                    // Refresh TVL banner after transaction
+                    await this.updateTVLBanner();
 
                     // Rebuild all planet sprites
                     if (window.gameScene) {

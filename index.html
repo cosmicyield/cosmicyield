@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Ethers.js for Web3 -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -830,6 +832,76 @@
                 closeLeaderboard();
             }
         });
+
+        // =====================================================
+        // WEB3 TVL BANNER - Dynamic blockchain data
+        // =====================================================
+
+        // BSC Testnet Configuration
+        const CONTRACTS = {
+            chainId: 97,
+            cosmicYield: '0xdd6E4cb8F9262812e4Bad57d7B7E11c53CaE53d6',
+            usdt: '0x04B0A46F87182FD00C9Ef077b14c1c2bfa7Fe3Ef'
+        };
+
+        // Minimal ABI (only needed methods)
+        const USDT_ABI = [
+            'function balanceOf(address owner) view returns (uint256)'
+        ];
+
+        async function updateTVLBanner() {
+            try {
+                // Connect to BSC Testnet via public RPC
+                const provider = new ethers.JsonRpcProvider('https://data-seed-prebsc-1-s1.binance.org:8545/');
+
+                // Initialize USDT contract (read-only)
+                const usdtContract = new ethers.Contract(CONTRACTS.usdt, USDT_ABI, provider);
+
+                // 1. Get TVL: Total USDT locked in CosmicYield contract
+                const tvlWei = await usdtContract.balanceOf(CONTRACTS.cosmicYield);
+                const tvl = Number(tvlWei) / 1e18;  // Convert from wei (18 decimals)
+                const tvlFormatted = tvl.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+
+                // 2. Calculate days since deployment (Jan 9, 2026)
+                const deployTimestamp = new Date('2026-01-09').getTime();
+                const daysActive = Math.floor((Date.now() - deployTimestamp) / (1000 * 60 * 60 * 24));
+
+                // 3. Active Players: Show "?" (needs The Graph backend)
+                const activePlayersValue = '?';
+
+                // 4. Update DOM (preserves existing color scheme)
+                document.getElementById('tvl-value').textContent = tvlFormatted;
+                document.getElementById('days-active').textContent = daysActive;
+                document.getElementById('active-players').textContent = activePlayersValue;
+
+                console.log(`[TVL] Updated: ${tvlFormatted}, ${daysActive} days active`);
+            } catch (error) {
+                console.error('[TVL] Error updating banner:', error);
+                // Show fallback values on error
+                document.getElementById('tvl-value').textContent = '$0';
+                document.getElementById('days-active').textContent = '0';
+                document.getElementById('active-players').textContent = '?';
+            }
+        }
+
+        // Initialize TVL on page load
+        if (typeof ethers !== 'undefined') {
+            updateTVLBanner();
+        } else {
+            console.warn('[TVL] Ethers.js not loaded, using static values');
+        }
+
+        // Refresh TVL every 30 seconds
+        setInterval(() => {
+            if (typeof ethers !== 'undefined') {
+                updateTVLBanner();
+            }
+        }, 30000);
     </script>
 
     <!-- Leaderboard Modal Overlay -->
