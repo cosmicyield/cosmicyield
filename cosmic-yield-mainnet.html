@@ -2367,10 +2367,18 @@ function openModal(modalId) {
     }
 
     // Initialiser le swap modal
-    if (modalId === 'swap-modal' && window.gameManager) {
+    if (modalId === 'swap-modal') {
         // Reset swap amount display
         document.getElementById('swap-amount').value = '';
         document.getElementById('swap-output').textContent = '⚡ 0';
+
+        // Update available plasma display
+        if (window.web3Manager && window.web3Manager.isConnected) {
+            const plasmaBalance = window.web3Manager.getEstimatedPlasma();
+            document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(plasmaBalance)}`;
+        } else if (window.gameManager) {
+            document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(window.gameManager.plasma)}`;
+        }
     }
 
     // Refresh USDT balance when opening purchase modal
