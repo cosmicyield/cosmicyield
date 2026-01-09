@@ -3843,6 +3843,10 @@ class Web3GameManager {
         // Timing for production estimation
         this.lastSyncTime = 0;  // When we last synced from contract
         this.claimTime = 0;     // Blockchain timestamp from contract
+
+        // Raid cooldown tracking
+        this.lastRaidTime = 0;
+        this.raidsCompleted = 0;
     }
 
     async init() {
@@ -4156,6 +4160,9 @@ class Web3GameManager {
         return this.executeTransaction(
             async () => {
                 const tx = await this.cosmicYieldContract.battle(winChance);
+                // Update raid tracking when battle is launched
+                this.lastRaidTime = Date.now();
+                this.raidsCompleted++;
                 return tx;
             },
             'Launching Raid...'
@@ -4337,7 +4344,31 @@ class Web3GameManager {
     }
 
     getRaidCooldownRemaining() {
-        return 0; // Web3 version handles this differently
+        const now = Date.now();
+        const cooldownMs = GAME_CONFIG.RAID.COOLDOWN_HOURS * 3600000;
+        const timeSinceRaid = now - this.lastRaidTime;
+
+        if (this.raidsCompleted === 0) return 0;
+
+        const remaining = cooldownMs - timeSinceRaid;
+        return Math.max(0, remaining);
+    }
+
+    updateRaidCooldown() {
+        const cooldownEl = document.getElementById('raid-cooldown');
+        const cooldownTimeEl = document.getElementById('cooldown-time');
+        const raidBtn = document.getElementById('raid-btn');
+
+        const remaining = this.getRaidCooldownRemaining();
+
+        if (remaining > 0) {
+            cooldownEl.style.display = 'block';
+            cooldownTimeEl.textContent = GameHelpers.formatTime(remaining / 1000);
+            raidBtn.disabled = true;
+        } else {
+            cooldownEl.style.display = 'none';
+            raidBtn.disabled = this.perHour === 0;
+        }
     }
 
     // Additional compatibility methods for Web3 version
