@@ -3,8 +3,8 @@
 > **Note for Claude:** Always check the `## 🔄 Session Hand-off` section first to see where the last session left off.
 
 ## 🔄 Session Hand-off (Context for /clear)
-- **Current Goal:** ✅ COMPLETE - Web3 version now has dynamic energy/plasma counters like the demo!
-- **Last Significant Change:** Added production estimation system for smooth, dynamic counters in Web3 version (January 8, 2026 - Session 2)
+- **Current Goal:** ✅ COMPLETE - Fixed swap Web3 connection + removed Energy→Plasma toggle (January 9, 2026 - Session 3)
+- **Last Significant Change:** Removed stub function blocking swap contract call, confirmed async swapPlasmaToEnergy() properly connects to smart contract
 - **Technical Context:**
   - All core features implemented, tested, and WORKING on testnet
   - Game deployed to GitHub (cosmicyield/cosmicyield) and Render
@@ -35,7 +35,7 @@
     - ✅ placeBuildings(): Works perfectly (planets placed on grid)
     - ✅ sellPlasma(): FIXED & VERIFIED (user receives USDT correctly!)
     - ✅ upgradeBuilding(): INTEGRATED & READY FOR TESTING (Web3 connected!)
-    - ⏳ swapPlasmaToEnergy(): Ready for testing
+    - ✅ swapPlasmaToEnergy(): NOW CONNECTED TO CONTRACT (stub removed, async function active)
     - ⏳ battle(): Ready for testing
 
 - **What was completed in this session:**
@@ -562,13 +562,19 @@ if (savedMusicState === null || savedMusicState === 'true') {
 - [x] Fix USDT decimal conversion (1e6 → 1e18)
 - [x] Add wallet disconnect button
 - [x] Remove minimum 1000 plasma requirement from sell modal
-- [x] **Remove Energy → Plasma toggle from mainnet UI** (January 9, 2026)
+- [x] **Remove Energy → Plasma toggle from mainnet UI** (January 9, 2026 - Session 3)
   - Removed 2-button toggle from swap modal
   - Removed `setSwapDirection()` function
   - Changed `swapDirection` to const 'plasma'
   - Updated modal title to "Swap: Plasma → Energy (×2)"
   - Plasma → Energy swap still works perfectly with Web3 contract
   - Smart contract doesn't support Energy → Plasma (by design)
+- [x] **Fix Swap Web3 Connection** (January 9, 2026 - Session 3) 🔧
+  - Discovered stub function blocking Web3 call at line 4414-4417
+  - Stub was returning `false` instead of calling async swapPlasmaToEnergy()
+  - Removed the stub - now async swapPlasmaToEnergy() (line 4143) is the only definition
+  - Swap now properly calls `cosmicYieldContract.swapPlasmaToEnergy()` with BigInt
+  - executeSwap() → web3Manager.swapPlasmaToEnergy() → cosmicYieldContract works! ✅
 - [x] Fix planet persistence after wallet reconnection
 - [x] Fix BigInt type errors in Web3 integration
 - [x] Deploy CosmicYield_Testnet.sol to BSC Testnet (`0xdd6E4cb8F9262812e4Bad57d7B7E11c53CaE53d6`)
