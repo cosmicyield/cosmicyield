@@ -2372,12 +2372,13 @@ function openModal(modalId) {
         document.getElementById('swap-amount').value = '';
         document.getElementById('swap-output').textContent = '⚡ 0';
 
-        // Update available plasma display
+        // Update available plasma display (integer only, no decimals)
         if (window.web3Manager && window.web3Manager.isConnected) {
-            const plasmaBalance = window.web3Manager.getEstimatedPlasma();
+            const plasmaBalance = Math.floor(window.web3Manager.getEstimatedPlasma());
             document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(plasmaBalance)}`;
         } else if (window.gameManager) {
-            document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(window.gameManager.plasma)}`;
+            const plasmaBalance = Math.floor(window.gameManager.plasma);
+            document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(plasmaBalance)}`;
         }
     }
 
