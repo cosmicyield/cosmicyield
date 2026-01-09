@@ -2483,7 +2483,11 @@ function setSellPercentage(percentage) {
     const amount = Math.floor((plasmaBalance * percentage) / 100);
 
     // Set custom input field
-    document.getElementById('custom-plasma-amount').value = amount;
+    const input = document.getElementById('custom-plasma-amount');
+    input.value = amount;
+
+    // Trigger input event to update preview
+    input.dispatchEvent(new Event('input'));
 }
 
 async function purchaseEnergy(usdtAmount) {
@@ -2547,7 +2551,11 @@ async function setBuyPercentage(percentage) {
     const amount = (usdtBalance * percentage) / 100;
 
     // Set custom input field
-    document.getElementById('custom-usdt-amount').value = amount.toFixed(2);
+    const input = document.getElementById('custom-usdt-amount');
+    input.value = amount.toFixed(2);
+
+    // Trigger input event to update preview
+    input.dispatchEvent(new Event('input'));
 }
 
 // ========================================
