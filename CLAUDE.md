@@ -562,6 +562,13 @@ if (savedMusicState === null || savedMusicState === 'true') {
 - [x] Fix USDT decimal conversion (1e6 → 1e18)
 - [x] Add wallet disconnect button
 - [x] Remove minimum 1000 plasma requirement from sell modal
+- [x] **Remove Energy → Plasma toggle from mainnet UI** (January 9, 2026)
+  - Removed 2-button toggle from swap modal
+  - Removed `setSwapDirection()` function
+  - Changed `swapDirection` to const 'plasma'
+  - Updated modal title to "Swap: Plasma → Energy (×2)"
+  - Plasma → Energy swap still works perfectly with Web3 contract
+  - Smart contract doesn't support Energy → Plasma (by design)
 - [x] Fix planet persistence after wallet reconnection
 - [x] Fix BigInt type errors in Web3 integration
 - [x] Deploy CosmicYield_Testnet.sol to BSC Testnet (`0xdd6E4cb8F9262812e4Bad57d7B7E11c53CaE53d6`)
