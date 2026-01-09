@@ -375,6 +375,41 @@
         }
 
         /* Version Label */
+        .faucet-btn {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            border: 2px solid #00ff88;
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+            z-index: 50;
+        }
+
+        .faucet-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.5);
+            background: linear-gradient(135deg, #00cc66, #00aa55);
+        }
+
+        .faucet-btn:active {
+            transform: translateY(0);
+        }
+
+        .faucet-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .version-label {
             position: fixed;
             bottom: 20px;
@@ -1342,6 +1377,11 @@
                 <span class="control-label">Exit</span>
             </button>
         </div>
+
+        <!-- Faucet Button (Testnet only) -->
+        <button class="faucet-btn" id="faucet-btn" onclick="claimFakeUSDT()" title="Claim 1000 Fake USDT">
+            💰 CLAIM 1000 USDT
+        </button>
 
         <!-- Version Label -->
         <div class="version-label">TESTNET VERSION</div>
@@ -2556,6 +2596,61 @@ async function setBuyPercentage(percentage) {
 
     // Trigger input event to update preview
     input.dispatchEvent(new Event('input'));
+}
+
+// ========================================
+// FAUCET SYSTEM (TESTNET ONLY)
+// ========================================
+async function claimFakeUSDT() {
+    if (!window.web3Manager || !window.web3Manager.userAddress) {
+        showNotification('Please connect your wallet first', 'error');
+        return;
+    }
+
+    GameSounds.play('click');
+
+    const faucetBtn = document.getElementById('faucet-btn');
+    faucetBtn.disabled = true;
+    faucetBtn.textContent = '⏳ CLAIMING...';
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+
+        // FakeUSDT contract address
+        const fakeUSDTAddress = '0x04B0A46F87182FD00C9Ef077b14c1c2bfa7Fe3Ef';
+
+        // Simplified ABI - only need mint function
+        const faucetABI = [
+            'function mint(uint256 amount) external'
+        ];
+
+        const faucetContract = new ethers.Contract(fakeUSDTAddress, faucetABI, signer);
+
+        // Mint 1000 USDT (18 decimals)
+        const amount = ethers.parseUnits('1000', 18);
+        const tx = await faucetContract.mint(amount);
+
+        showNotification('Transaction sent! Waiting for confirmation...', 'success');
+
+        const receipt = await tx.wait();
+
+        if (receipt && receipt.status === 1) {
+            showNotification('✓ Successfully claimed 1000 Fake USDT!', 'success');
+            GameSounds.play('purchase');
+
+            // Refresh USDT balance
+            if (window.web3Manager) {
+                await window.web3Manager.refreshUSDTBalance();
+            }
+        }
+    } catch (error) {
+        console.error('Faucet claim error:', error);
+        showNotification(`Claim failed: ${error.message}`, 'error');
+    } finally {
+        faucetBtn.disabled = false;
+        faucetBtn.textContent = '💰 CLAIM 1000 USDT';
+    }
 }
 
 // ========================================
