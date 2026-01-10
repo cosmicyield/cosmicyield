@@ -1437,6 +1437,29 @@
         .mobile-warning-modal p {
             margin: 0;
         }
+
+        #mobile-warning-dismiss {
+            margin-top: 2rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #00ffaa, #00cc88);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 170, 0.3);
+        }
+
+        #mobile-warning-dismiss:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 170, 0.5);
+        }
+
+        #mobile-warning-dismiss:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -1456,6 +1479,9 @@
             <p style="color: #00ffaa; font-weight: 600; font-size: 1rem;">
                 💡 Please access this game from a computer for the best experience.
             </p>
+            <button id="mobile-warning-dismiss">
+                ✓ I understand, continue anyway
+            </button>
         </div>
     </div>
 
@@ -3000,27 +3026,27 @@ const GameSounds = {
 
     // Show warning if mobile OR small screen
     if (isMobileDevice || isSmallScreen) {
-        console.log('[Mobile Detection] Mobile/tablet device detected - showing warning');
+        console.log('[Mobile Detection] Mobile/tablet detected - showing dismissible warning');
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Show mobile warning overlay
             const warningOverlay = document.getElementById('mobile-warning-overlay');
+            const dismissBtn = document.getElementById('mobile-warning-dismiss');
+
             if (warningOverlay) {
                 warningOverlay.style.display = 'flex';
             }
 
-            // Hide loading screen (no need to show it)
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-                loadingScreen.classList.add('hidden');
+            // Allow user to dismiss warning and play anyway
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', () => {
+                    console.log('[Mobile Detection] User chose to continue on mobile');
+                    warningOverlay.style.display = 'none';
+                });
             }
-
-            // Prevent Phaser game from initializing
-            console.log('[Mobile Detection] Game initialization blocked');
         });
 
-        // Block Phaser initialization by nullifying the global
-        window.Phaser = null;
+        // NOTE: We do NOT null out window.Phaser anymore
+        // Let the game initialize normally in the background
     }
 })();
 
