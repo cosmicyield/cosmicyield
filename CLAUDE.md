@@ -3,9 +3,9 @@
 > **Note for Claude:** Always check the `## 🔄 Session Hand-off` section first to see where the last session left off.
 
 ## 🔄 Session Hand-off (Context for /clear)
-- **Current Goal:** ✅ COMPLETE - Fixed planet display values + building level calculations (January 10, 2026 - Session 6.2)
-- **Last Significant Change:** Corrected building level display (1-10 scale instead of planet ID), simplified upgrade modal text, added immediate re-sync after transactions
-- **Next Session Goal:** (User to define)
+- **Current Goal:** 🚀 IN PROGRESS - Implement mobile device detection warning (January 10, 2026 - Session 6.3)
+- **Last Significant Change:** Synced cosmic-yield-topdown.html with mainnet (removed Move feature, simplified Swap modal, fixed scrollbars). Implementing mobile detection overlay to recommend desktop instead of adapting UI
+- **Next Session Goal:** Complete mobile detection on both files + commit changes
 - **User Preference:** MUST USE HAIKU for sessions (user explicitly requested)
 - **Technical Context:**
   - All core features implemented, tested, and WORKING on testnet
@@ -253,6 +253,50 @@
     - ✅ swapPlasmaToEnergy() transaction on testnet - ALL OK
     - ✅ battle() function on testnet - ALL OK
     - ✅ cross-account interactions (manager fee distribution) - ALL OK
+
+- **Session 6.2.1 Topdown Demo Sync (Jan 10, 2026):**
+  1. **Removed Move Building feature**
+     - Deleted move button from upgrade modal (line 1392)
+     - Deleted moveModule() function (lines 2074-2102)
+     - Deleted startMoveMode() function (lines 2866-2881)
+     - Removed drag & drop logic and move click handler
+     - Reason: Smart contract doesn't support moving buildings once placed
+
+  2. **Simplified Swap modal**
+     - Removed Energy → Plasma toggle buttons (was redundant with mainnet)
+     - Changed swapDirection to const 'plasma' (line 2605)
+     - Fixed plasma display by calling updateSwapDisplay() in openModal()
+     - Plasma now displays as integer without decimals
+
+  3. **Fixed Buy/Sell modal scrollbars**
+     - Changed `.modal-body` from `overflow-y: auto` to `overflow-y: hidden`
+     - Changed button hover from `scale(1.02)` to `translateY(-2px)` to prevent overflow
+     - Increased modal width from 600px to 700px to accommodate content
+     - Added padding to swap-container for better spacing
+
+  4. **Issues fixed during implementation:**
+     - Fixed plasma not displaying in swap modal (missing updateSwapDisplay call)
+     - Fixed scrollbar appearing on button hover (overflow+scale conflict)
+     - Fixed click-through to background planet when clicking modal buttons
+
+  - **Commits:**
+    - `e3971b1`: Remove Move Building feature from topdown demo
+    - `0c52676`: Simplify Swap modal - Plasma to Energy only
+    - `6b00d0d`: Fix modal scrollbars and button overflow in Buy/Sell
+
+- **Session 6.3 Mobile Detection (Jan 10, 2026 - In Progress):**
+  1. **Implementing mobile device detection warning** 📱
+     - Goal: Detect mobile/tablet devices and show overlay recommending desktop
+     - Detection strategy: User Agent check + screen width check (≤768px)
+     - NOT adapting game for mobile (UI too complex for mobile - 360 tiles + modals)
+     - Overlay blocks game initialization if mobile detected
+     - Will be added to both cosmic-yield-topdown.html and cosmic-yield-mainnet.html
+
+  - **Implementation details:**
+    - HTML: Modal overlay with message recommending desktop (z-index: 1500)
+    - CSS: Gradient background, fadeInScale animation, centered modal
+    - JS: Detects via regex and screen width, nullifies Phaser on mobile
+    - Tests: iOS, Android, tablet detection
 
 - **Active Blockers:** None - All critical systems working! ✅
 
