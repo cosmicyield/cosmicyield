@@ -1202,6 +1202,28 @@
             cursor: not-allowed;
         }
 
+        #referral-link-btn {
+            background: linear-gradient(135deg, #00f0ff, #00d9ff);
+            color: var(--color-bg);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        #referral-link-btn:hover {
+            opacity: 0.9;
+        }
+
+        #referral-link-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         /* Transaction Modal */
         #tx-modal {
             position: fixed;
@@ -1390,6 +1412,7 @@
         <div class="wallet-network" id="wallet-network">Network: Disconnected</div>
         <button id="connect-wallet-btn">Connect Wallet</button>
         <button id="disconnect-wallet-btn" style="display: none;">Disconnect</button>
+        <button id="referral-link-btn" style="display: none;">📤 Share Referral</button>
     </div>
 
     <!-- Transaction Modal -->
@@ -2625,8 +2648,11 @@ async function purchaseEnergy(usdtAmount) {
     // Convert USDT amount to wei (FakeUSDT has 18 decimals)
     const usdtWei = BigInt(usdtAmount) * BigInt(10 ** 18);
 
+    // Get referrer if available
+    const referrer = window.referralSystem.getReferrer();
+
     try {
-        const result = await window.web3Manager.buyEnergy(usdtWei);
+        const result = await window.web3Manager.buyEnergy(usdtWei, referrer);
         if (result && result.status === 1) {
             showNotification(`✓ Successfully purchased ${(usdtAmount * 1000).toLocaleString()} Energy!`, 'success');
         }
@@ -3971,6 +3997,61 @@ class GameScene extends Phaser.Scene {
 }
 
 // ============================================
+// REFERRAL SYSTEM
+// ============================================
+
+class ReferralSystem {
+    constructor() {
+        this.referrer = null;
+        this.detectReferrer();
+    }
+
+    detectReferrer() {
+        // Get ?ref= parameter from URL
+        const params = new URLSearchParams(window.location.search);
+        this.referrer = params.get('ref');
+
+        // Validate if it's a valid Ethereum address
+        if (this.referrer && !this.isValidAddress(this.referrer)) {
+            console.warn('Invalid referrer address:', this.referrer);
+            this.referrer = null;
+        }
+
+        if (this.referrer) {
+            console.log('Referral detected:', this.referrer);
+        }
+    }
+
+    isValidAddress(address) {
+        return /^0x[a-fA-F0-9]{40}$/.test(address);
+    }
+
+    getReferrer() {
+        return this.referrer || '0x0000000000000000000000000000000000000000';
+    }
+
+    generateReferralLink(userAddress) {
+        if (!this.isValidAddress(userAddress)) return null;
+        const baseUrl = window.location.origin + window.location.pathname;
+        return `${baseUrl}?ref=${userAddress}`;
+    }
+
+    copyReferralLink(userAddress) {
+        const link = this.generateReferralLink(userAddress);
+        if (!link) return false;
+        navigator.clipboard.writeText(link).then(() => {
+            showNotification('Referral link copied to clipboard!', 'success');
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            showNotification('Failed to copy link', 'error');
+        });
+        return true;
+    }
+}
+
+window.referralSystem = new ReferralSystem();
+
+// ============================================
 // WEB3 CONFIGURATION & CONTRACT SETUP
 // ============================================
 
@@ -4049,12 +4130,18 @@ class Web3GameManager {
         const waitForButton = () => {
             const connectBtn = document.getElementById('connect-wallet-btn');
             const disconnectBtn = document.getElementById('disconnect-wallet-btn');
-            if (!connectBtn || !disconnectBtn) {
+            const referralBtn = document.getElementById('referral-link-btn');
+            if (!connectBtn || !disconnectBtn || !referralBtn) {
                 setTimeout(waitForButton, 100);
                 return;
             }
             connectBtn.addEventListener('click', () => this.connectWallet());
             disconnectBtn.addEventListener('click', () => this.disconnectWallet());
+            referralBtn.addEventListener('click', () => {
+                if (this.userAddress) {
+                    window.referralSystem.copyReferralLink(this.userAddress);
+                }
+            });
         };
         waitForButton();
 
@@ -4205,18 +4292,21 @@ class Web3GameManager {
         const networkEl = document.getElementById('wallet-network');
         const connectBtn = document.getElementById('connect-wallet-btn');
         const disconnectBtn = document.getElementById('disconnect-wallet-btn');
+        const referralBtn = document.getElementById('referral-link-btn');
 
         if (this.isConnected) {
             addressEl.textContent = this.userAddress.substring(0, 6) + '...' + this.userAddress.substring(38);
             networkEl.textContent = 'Network: ' + CHAIN_NAME[CONTRACTS.chainId];
             connectBtn.style.display = 'none';
             disconnectBtn.style.display = 'block';
+            referralBtn.style.display = 'block';
             panel.classList.add('connected');
         } else {
             addressEl.textContent = 'Not Connected';
             networkEl.textContent = 'Network: Disconnected';
             connectBtn.style.display = 'block';
             disconnectBtn.style.display = 'none';
+            referralBtn.style.display = 'none';
             panel.classList.remove('connected');
         }
     }
