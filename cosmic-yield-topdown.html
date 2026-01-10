@@ -916,7 +916,7 @@
         .purchase-option:hover {
             background: linear-gradient(135deg, rgba(0, 255, 136, 0.25), rgba(0, 204, 102, 0.25));
             border-color: #00ffaa;
-            transform: scale(1.02);
+            transform: translateY(-2px);
             box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
         }
 
@@ -2233,8 +2233,7 @@ function openModal(modalId) {
 
     // Initialiser le swap modal
     if (modalId === 'swap-modal' && window.gameManager) {
-        swapDirection = 'plasma';
-        setSwapDirection('plasma');
+        updateSwapDisplay();
     }
 
     // Désactiver l'input Phaser pour éviter les clics sur la grille
