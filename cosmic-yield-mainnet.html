@@ -1202,26 +1202,37 @@
             cursor: not-allowed;
         }
 
-        #referral-link-btn {
-            background: linear-gradient(135deg, #00f0ff, #00d9ff);
+        #referral-copy-btn,
+        #referral-twitter-btn {
+            flex: 1;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
             color: var(--color-bg);
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
+            border: 2px solid var(--color-primary);
+            padding: 12px 10px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 14px;
-            margin-top: 10px;
-            width: 100%;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            text-align: center;
         }
 
-        #referral-link-btn:hover {
-            opacity: 0.9;
+        #referral-copy-btn:hover,
+        #referral-twitter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.4);
         }
 
-        #referral-link-btn:disabled {
+        #referral-copy-btn:active,
+        #referral-twitter-btn:active {
+            transform: translateY(0);
+        }
+
+        #referral-copy-btn:disabled,
+        #referral-twitter-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
 
         /* Transaction Modal */
@@ -1412,7 +1423,15 @@
         <div class="wallet-network" id="wallet-network">Network: Disconnected</div>
         <button id="connect-wallet-btn">Connect Wallet</button>
         <button id="disconnect-wallet-btn" style="display: none;">Disconnect</button>
-        <button id="referral-link-btn" style="display: none;">📤 Share Referral</button>
+
+        <!-- Referral Section -->
+        <div id="referral-section" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0, 240, 255, 0.2);">
+            <div style="font-size: 12px; color: var(--color-energy); margin-bottom: 10px; text-align: center;">🎁 Earn Rewards</div>
+            <div style="display: flex; gap: 8px;">
+                <button id="referral-copy-btn" title="Copy your referral link">📋 Copy Link</button>
+                <button id="referral-twitter-btn" title="Share on X (Twitter)">𝕏 Share on X</button>
+            </div>
+        </div>
     </div>
 
     <!-- Transaction Modal -->
@@ -4047,6 +4066,22 @@ class ReferralSystem {
         });
         return true;
     }
+
+    shareOnTwitter(userAddress) {
+        const link = this.generateReferralLink(userAddress);
+        if (!link) return false;
+
+        // Pre-composed tweet with referral link
+        const tweetText = `🚀 Join me on Cosmic Yield! 🪐 A space mining game on-chain powered by BSC. Earn rewards and build your empire!\n\n🎁 Use my referral link to start:\n${link}`;
+
+        // URL encode the tweet
+        const encodedTweet = encodeURIComponent(tweetText);
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${encodedTweet}`;
+
+        // Open Twitter in new window
+        window.open(twitterUrl, 'twitter-share', 'width=600,height=600');
+        return true;
+    }
 }
 
 window.referralSystem = new ReferralSystem();
@@ -4130,16 +4165,22 @@ class Web3GameManager {
         const waitForButton = () => {
             const connectBtn = document.getElementById('connect-wallet-btn');
             const disconnectBtn = document.getElementById('disconnect-wallet-btn');
-            const referralBtn = document.getElementById('referral-link-btn');
-            if (!connectBtn || !disconnectBtn || !referralBtn) {
+            const referralCopyBtn = document.getElementById('referral-copy-btn');
+            const referralTwitterBtn = document.getElementById('referral-twitter-btn');
+            if (!connectBtn || !disconnectBtn || !referralCopyBtn || !referralTwitterBtn) {
                 setTimeout(waitForButton, 100);
                 return;
             }
             connectBtn.addEventListener('click', () => this.connectWallet());
             disconnectBtn.addEventListener('click', () => this.disconnectWallet());
-            referralBtn.addEventListener('click', () => {
+            referralCopyBtn.addEventListener('click', () => {
                 if (this.userAddress) {
                     window.referralSystem.copyReferralLink(this.userAddress);
+                }
+            });
+            referralTwitterBtn.addEventListener('click', () => {
+                if (this.userAddress) {
+                    window.referralSystem.shareOnTwitter(this.userAddress);
                 }
             });
         };
@@ -4292,21 +4333,21 @@ class Web3GameManager {
         const networkEl = document.getElementById('wallet-network');
         const connectBtn = document.getElementById('connect-wallet-btn');
         const disconnectBtn = document.getElementById('disconnect-wallet-btn');
-        const referralBtn = document.getElementById('referral-link-btn');
+        const referralSection = document.getElementById('referral-section');
 
         if (this.isConnected) {
             addressEl.textContent = this.userAddress.substring(0, 6) + '...' + this.userAddress.substring(38);
             networkEl.textContent = 'Network: ' + CHAIN_NAME[CONTRACTS.chainId];
             connectBtn.style.display = 'none';
             disconnectBtn.style.display = 'block';
-            referralBtn.style.display = 'block';
+            referralSection.style.display = 'block';
             panel.classList.add('connected');
         } else {
             addressEl.textContent = 'Not Connected';
             networkEl.textContent = 'Network: Disconnected';
             connectBtn.style.display = 'block';
             disconnectBtn.style.display = 'none';
-            referralBtn.style.display = 'none';
+            referralSection.style.display = 'none';
             panel.classList.remove('connected');
         }
     }
