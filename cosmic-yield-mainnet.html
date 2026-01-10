@@ -3204,8 +3204,39 @@ async function executeRaid() {
         const result = await window.web3Manager.battle(winChance);
 
         if (result && result.status === 1) {
-            GameSounds.play('raid-success');
-            showNotification(`✓ Raid successful!`, 'success');
+            // Parse BattleResult event from transaction logs
+            const battleEvent = result.logs?.find(log => {
+                try {
+                    const iface = new ethers.Interface([
+                        'event BattleResult(address indexed explorer, bool isWin, uint8 winChance, uint256 battleReward)'
+                    ]);
+                    const parsed = iface.parseLog({ topics: log.topics, data: log.data });
+                    return parsed && parsed.name === 'BattleResult';
+                } catch {
+                    return false;
+                }
+            });
+
+            if (battleEvent) {
+                const iface = new ethers.Interface([
+                    'event BattleResult(address indexed explorer, bool isWin, uint8 winChance, uint256 battleReward)'
+                ]);
+                const parsed = iface.parseLog({ topics: battleEvent.topics, data: battleEvent.data });
+                const isWin = parsed.args.isWin;
+                const battleReward = Number(parsed.args.battleReward);
+
+                // Show result notification
+                if (isWin) {
+                    GameSounds.play('raid-success');
+                    showNotification(`🎉 VICTORY! +${GameHelpers.formatNumber(battleReward)} energy!`, 'reward');
+                } else {
+                    showNotification(`💥 Defeat... +${GameHelpers.formatNumber(battleReward)} energy (consolation)`, 'error');
+                }
+            } else {
+                // Fallback if event parsing fails
+                GameSounds.play('raid-success');
+                showNotification(`✓ Raid completed!`, 'success');
+            }
         }
     } catch (error) {
         console.error('Raid error:', error);
@@ -4158,7 +4189,12 @@ class GameScene extends Phaser.Scene {
         const winChanceSlider = document.getElementById('win-chance-slider');
         winChanceSlider.oninput = () => {
             document.getElementById('win-chance').textContent = winChanceSlider.value;
-            window.gameManager.updateUI();
+            // Use web3Manager if connected, otherwise fallback to gameManager
+            if (window.web3Manager && window.web3Manager.isConnected) {
+                window.web3Manager.updateUI();
+            } else if (window.gameManager) {
+                window.gameManager.updateUI();
+            }
         };
 
         const swapInput = document.getElementById('swap-amount');
@@ -4934,6 +4970,14 @@ class Web3GameManager {
         const stationEl = document.getElementById('station-level');
         if (commanderEl) commanderEl.textContent = 'Commander';
         if (stationEl) stationEl.textContent = `Station Lv. 1 • ${this.getModuleCount()} modules`;
+
+        // Update raid reward preview (based on slider value and perHour)
+        const winChance = parseInt(document.getElementById('win-chance-slider')?.value || 50);
+        const potentialReward = GameHelpers.calculateRaidReward(this.perHour, winChance, true);
+        const raidRewardEl = document.getElementById('raid-reward');
+        if (raidRewardEl) {
+            raidRewardEl.textContent = `⚡ ${GameHelpers.formatNumber(potentialReward)}`;
+        }
 
         // Update raid cooldown timer (important for showing countdown)
         this.updateRaidCooldown();
