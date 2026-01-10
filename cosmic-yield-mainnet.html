@@ -1235,6 +1235,16 @@
             transform: none;
         }
 
+        /* Recruits Modal Styles */
+        #recruits-count:hover {
+            opacity: 0.8;
+        }
+
+        #close-recruits-modal:hover {
+            opacity: 0.7;
+            transform: scale(1.1);
+        }
+
         /* Transaction Modal */
         #tx-modal {
             position: fixed;
@@ -1433,15 +1443,28 @@
             </div>
         </div>
 
-        <!-- Referral Info Section (Sponsor & Recruits) -->
+        <!-- Referral Info Section (Referrer & Recruits) -->
         <div id="referral-info-section" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 221, 0, 0.15); font-size: 11px;">
             <div style="margin-bottom: 8px;">
-                <div style="color: rgba(255, 221, 0, 0.7); margin-bottom: 2px;">👤 Sponsor</div>
+                <div style="color: rgba(255, 221, 0, 0.7); margin-bottom: 2px;">👤 Referrer</div>
                 <div id="sponsor-address" style="color: var(--color-primary); font-weight: bold; word-break: break-all; font-size: 10px;">-</div>
             </div>
             <div>
                 <div style="color: rgba(0, 240, 255, 0.7); margin-bottom: 2px;">👥 Recruits</div>
-                <div id="recruits-count" style="color: var(--color-secondary); font-weight: bold;">0</div>
+                <div id="recruits-count" style="color: var(--color-secondary); font-weight: bold; cursor: pointer; text-decoration: underline; text-decoration-style: dotted;" title="Click to view recruits list">0</div>
+            </div>
+        </div>
+
+        <!-- Recruits List Modal -->
+        <div id="recruits-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 2000; align-items: center; justify-content: center;">
+            <div style="background: var(--color-panel); border: 2px solid var(--color-primary); border-radius: 8px; padding: 20px; max-width: 400px; width: 90%; max-height: 70vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: var(--color-primary); margin: 0; font-family: var(--font-display);">👥 My Recruits</h3>
+                    <button id="close-recruits-modal" style="background: transparent; border: none; color: var(--color-danger); font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px;">×</button>
+                </div>
+                <div id="recruits-list-content" style="color: white; font-size: 13px;">
+                    <!-- Content will be populated dynamically -->
+                </div>
             </div>
         </div>
     </div>
@@ -4196,6 +4219,37 @@ class Web3GameManager {
                     window.referralSystem.shareOnTwitter(this.userAddress);
                 }
             });
+
+            // Recruits modal event listeners
+            const recruitsCount = document.getElementById('recruits-count');
+            const recruitsModal = document.getElementById('recruits-modal');
+            const closeRecruitsModal = document.getElementById('close-recruits-modal');
+
+            if (recruitsCount && recruitsModal && closeRecruitsModal) {
+                recruitsCount.addEventListener('click', () => {
+                    if (this.isConnected && this.alliesCount > 0) {
+                        this.showRecruitsModal();
+                    }
+                });
+
+                closeRecruitsModal.addEventListener('click', () => {
+                    recruitsModal.style.display = 'none';
+                });
+
+                // Close modal on background click
+                recruitsModal.addEventListener('click', (e) => {
+                    if (e.target === recruitsModal) {
+                        recruitsModal.style.display = 'none';
+                    }
+                });
+
+                // Close modal on ESC key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && recruitsModal.style.display === 'flex') {
+                        recruitsModal.style.display = 'none';
+                    }
+                });
+            }
         };
         waitForButton();
 
@@ -4425,16 +4479,16 @@ class Web3GameManager {
         const nullAddress = '0x0000000000000000000000000000000000000000';
 
         if (this.ally && this.ally !== nullAddress) {
-            // Has a sponsor
+            // Has a referrer
             sponsorEl.textContent = this.ally.substring(0, 6) + '...' + this.ally.substring(38);
             sponsorEl.style.cursor = 'pointer';
-            sponsorEl.title = 'Click to copy sponsor address';
+            sponsorEl.title = 'Click to copy referrer address';
             sponsorEl.onclick = () => {
                 navigator.clipboard.writeText(this.ally);
-                showNotification('Sponsor address copied!', 'success');
+                showNotification('Referrer address copied!', 'success');
             };
         } else {
-            // No sponsor
+            // No referrer
             sponsorEl.textContent = 'None';
             sponsorEl.style.cursor = 'default';
             sponsorEl.title = '';
@@ -4448,6 +4502,31 @@ class Web3GameManager {
         if (this.isConnected) {
             infoSection.style.display = 'block';
         }
+    }
+
+    showRecruitsModal() {
+        const modal = document.getElementById('recruits-modal');
+        const content = document.getElementById('recruits-list-content');
+
+        if (!modal || !content) return;
+
+        // Display "Coming soon" with explanation
+        // TODO: Implement event parsing via The Graph subgraph for full recruits list
+        content.innerHTML = `
+            <div style="text-align: center; padding: 20px 0;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🚧</div>
+                <div style="color: var(--color-energy); font-weight: bold; margin-bottom: 10px;">
+                    Recruits List - Coming Soon
+                </div>
+                <div style="color: rgba(255, 255, 255, 0.7); font-size: 12px; line-height: 1.6;">
+                    You have <strong style="color: var(--color-secondary);">${this.alliesCount}</strong> recruit${this.alliesCount > 1 ? 's' : ''}!
+                    <br><br>
+                    Detailed recruit addresses will be available soon via our blockchain indexer.
+                </div>
+            </div>
+        `;
+
+        modal.style.display = 'flex';
     }
 
     // ==========================================
