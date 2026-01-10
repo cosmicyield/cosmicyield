@@ -4460,6 +4460,18 @@ class Web3GameManager {
                     this.modules[index] = tile;
                 }
             });
+
+            // Debug: Log decoded tiles for verification
+            if (this.modules.some(m => m !== 0)) {
+                console.log('[Blockchain Sync] Planet data loaded - Tiles:');
+                this.modules.forEach((tile, index) => {
+                    if (tile > 0) {
+                        const planetId = tile % 10;
+                        const upgrades = Math.floor(tile / 10);
+                        console.log(`  Tile ${index}: Planet ${planetId}, ${upgrades} upgrade${upgrades !== 1 ? 's' : ''} (raw: ${tile})`);
+                    }
+                });
+            }
         } catch (error) {
             console.error('Error loading planet data:', error);
         }
@@ -4703,21 +4715,21 @@ class Web3GameManager {
             if (receipt && receipt.status === 1) {
                 document.getElementById('tx-status').textContent = '✓ Transaction Confirmed!';
 
-                // Reload planet data
-                setTimeout(async () => {
-                    await this.loadPlanetData();
-                    this.updateUI();
+                // Reload planet data from blockchain (re-sync to ensure accuracy)
+                console.log('[executeTransaction] TX confirmed - Re-syncing with blockchain');
+                await this.loadPlanetData();
+                this.updateUI();
 
-                    // Refresh TVL banner after transaction
-                    await this.updateTVLBanner();
+                // Refresh TVL banner after transaction
+                await this.updateTVLBanner();
 
-                    // Rebuild all planet sprites
-                    if (window.gameScene) {
-                        window.gameScene.rebuildAllModules();
-                    }
+                // Rebuild all planet sprites to reflect updated data
+                if (window.gameScene) {
+                    window.gameScene.rebuildAllModules();
+                    console.log('[executeTransaction] Planet sprites rebuilt with latest blockchain data');
+                }
 
-                    this.hideTxModal();
-                }, 2000);
+                this.hideTxModal();
 
                 return receipt;
             } else {
