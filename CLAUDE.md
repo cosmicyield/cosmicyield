@@ -3,10 +3,10 @@
 > **Note for Claude:** Always check the `## 🔄 Session Hand-off` section first to see where the last session left off.
 
 ## 🔄 Session Hand-off (Context for /clear)
-- **Current Goal:** ✅ COMPLETE - Raid cooldown persistence + Dynamic TVL + Auto-refresh + Console polish (January 9, 2026 - Session 5)
-- **Last Significant Change:** Fixed raid cooldown persistence via blockchain (battleTime), added dynamic Web3 TVL to index.html with RPC fallback, TVL auto-refreshes every 30s in mainnet game, cleaned console logs
-- **Next Session Goal:** Implement referral system (generate link, detect ?ref= param, auto-include in buyEnergy TX)
-- **User Preference:** MUST USE HAIKU for next sessions (user explicitly requested)
+- **Current Goal:** ✅ COMPLETE - Referral system fully implemented (January 10, 2026 - Session 6)
+- **Last Significant Change:** Complete referral system with ?ref= detection, shareable links, Twitter integration, and referral info display (sponsor + recruits count)
+- **Next Session Goal:** (User to define - referral system complete and tested)
+- **User Preference:** MUST USE HAIKU for sessions (user explicitly requested)
 - **Technical Context:**
   - All core features implemented, tested, and WORKING on testnet
   - Game deployed to GitHub (cosmicyield/cosmicyield) and Render
@@ -174,7 +174,49 @@
   - 0 new smart contract deployments
   - All changes ready for git commit
 
-- **Active Blockers:** None - All features working! ✅
+- **What was completed in this session (January 10, 2026 - Session 6):**
+  1. **Implemented complete referral system** 🎁
+     - ReferralSystem class detects ?ref= URL parameter on page load
+     - Validates Ethereum addresses with regex (0x + 40 hex chars)
+     - Auto-includes referrer in buyEnergy() transactions
+     - Falls back to null address if invalid/missing
+     - Integrated with existing Web3 flow (no breaking changes)
+
+  2. **Enhanced referral UI with Twitter sharing** 📤
+     - Restructured from single button to complete "Earn Rewards" section
+     - Two prominent side-by-side buttons below disconnect button:
+       - "📋 Copy Link": Copies personalized referral link to clipboard
+       - "𝕏 Share on X": Opens Twitter with pre-composed tweet
+     - Pre-filled tweet includes emoji, game description, and referral link
+     - Smooth animations on hover (lift effect + cyan glow)
+     - Section only visible when wallet connected
+
+  3. **Added referral info display** 👥
+     - New "Referral Info" section shows:
+       - **Sponsor**: Current parrain address (truncated, clickable to copy)
+       - **Recruits**: Count of filleuls acquired
+     - Loads ally and alliesCount from smart contract (getPlanet)
+     - Shows "None" if player has no sponsor
+     - Discrete styling (11px font, subtle borders, color-coded)
+     - Auto-hides when wallet disconnected
+
+  4. **Smart contract integration** ⛓️
+     - Loads alliesCount from planetData.alliesCount
+     - Loads ally from planetData.ally
+     - Data persists across page refreshes
+     - Updates on wallet connection/disconnection
+
+- **Session Statistics (Jan 10, 2026 - Session 6):**
+  - 1 file modified (cosmic-yield-mainnet.html)
+  - 3 commits created:
+    - `ca7cb99`: Implement referral system for on-chain game
+    - `f011875`: Improve referral system UI with Twitter sharing
+    - `2748ec7`: Add referral info display - show sponsor and recruits
+  - 3 new features (referral generation, Twitter sharing, info display)
+  - 0 new smart contract deployments
+  - All changes deployed to Render automatic
+
+- **Active Blockers:** None - Referral system complete and fully functional! ✅
 
 ---
 
