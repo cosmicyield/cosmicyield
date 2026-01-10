@@ -1526,7 +1526,8 @@
             <div style="font-size: 12px; color: var(--color-energy); margin-bottom: 10px; text-align: center;">🎁 Earn Rewards</div>
             <div style="display: flex; gap: 8px;">
                 <button id="referral-copy-btn" title="Copy your referral link">📋 Copy Link</button>
-                <button id="referral-twitter-btn" title="Share on X (Twitter)">𝕏 Share on X</button>
+                <!-- TODO MAINNET: Remove 'disabled' attribute to enable Twitter sharing -->
+                <button id="referral-twitter-btn" title="Disabled on testnet - Available on mainnet" disabled>𝕏 Share on X</button>
             </div>
         </div>
 
@@ -4376,11 +4377,14 @@ class Web3GameManager {
                     window.referralSystem.copyReferralLink(this.userAddress);
                 }
             });
+            // TODO MAINNET: Uncomment this event listener to enable Twitter sharing
+            /*
             referralTwitterBtn.addEventListener('click', () => {
                 if (this.userAddress) {
                     window.referralSystem.shareOnTwitter(this.userAddress);
                 }
             });
+            */
 
             // Recruits modal event listeners
             const recruitsCount = document.getElementById('recruits-count');
