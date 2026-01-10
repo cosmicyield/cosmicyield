@@ -3,9 +3,9 @@
 > **Note for Claude:** Always check the `## 🔄 Session Hand-off` section first to see where the last session left off.
 
 ## 🔄 Session Hand-off (Context for /clear)
-- **Current Goal:** ✅ COMPLETE - Referral system fully implemented (January 10, 2026 - Session 6)
-- **Last Significant Change:** Complete referral system with ?ref= detection, shareable links, Twitter integration, and referral info display (sponsor + recruits count)
-- **Next Session Goal:** (User to define - referral system complete and tested)
+- **Current Goal:** ✅ COMPLETE - Referral system fully polished (January 10, 2026 - Session 6.1)
+- **Last Significant Change:** Renamed "Sponsor" → "Referrer", added interactive recruits modal popup (Coming Soon UI)
+- **Next Session Goal:** (User to define - referral system 100% complete)
 - **User Preference:** MUST USE HAIKU for sessions (user explicitly requested)
 - **Technical Context:**
   - All core features implemented, tested, and WORKING on testnet
@@ -215,6 +215,15 @@
   - 3 new features (referral generation, Twitter sharing, info display)
   - 0 new smart contract deployments
   - All changes deployed to Render automatic
+
+- **Session 6.1 Polishing (Jan 10, 2026):**
+  - ✅ Renamed "Sponsor" → "Referrer" throughout UI (more standard terminology)
+  - ✅ Added interactive recruits modal popup:
+    - Click on recruits count to open modal
+    - Shows "Coming Soon" with recruit count
+    - Close via: X button, ESC key, or background click
+    - Ready for The Graph integration for full recruits list
+  - 1 commit: `7b7f55b`: Rename Sponsor to Referrer and add recruits modal popup
 
 - **Active Blockers:** None - Referral system complete and fully functional! ✅
 
