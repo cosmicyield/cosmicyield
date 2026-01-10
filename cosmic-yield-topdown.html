@@ -512,7 +512,7 @@
         }
 
         .modal-body {
-            overflow-y: auto;
+            overflow-y: hidden;
             flex: 1;
         }
 
@@ -1320,9 +1320,8 @@
                 <button class="modal-close" onclick="closeModal('swap-modal')">&times;</button>
             </div>
             <div class="swap-container">
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                    <button class="swap-direction-btn active" id="swap-dir-plasma" onclick="setSwapDirection('plasma')">💎 Plasma → ⚡ Energy (×2)</button>
-                    <button class="swap-direction-btn" id="swap-dir-energy" onclick="setSwapDirection('energy')">⚡ Energy → 💎 Plasma (×0.5)</button>
+                <div style="text-align: center; font-size: 18px; font-weight: bold; color: var(--color-primary); margin-bottom: 15px;">
+                    💎 Plasma → ⚡ Energy (×2)
                 </div>
 
                 <div class="swap-balance">
@@ -1389,7 +1388,6 @@
                 </div>
                 <div style="display: flex; gap: 1rem; justify-content: center;">
                     <button class="upgrade-btn" id="upgrade-btn" onclick="executeUpgrade()" style="flex: 1; max-width: 200px;">⬆️ UPGRADE</button>
-                    <button class="upgrade-btn" id="move-btn" onclick="startMoveMode()" style="flex: 1; max-width: 200px; background: linear-gradient(135deg, #aa00ff, #7700cc);">📦 MOVE</button>
                 </div>
             </div>
         </div>
@@ -2071,37 +2069,6 @@ class GameManager {
     }
 
     // ==========================================
-    // MODULE MOVEMENT
-    // ==========================================
-
-    moveModule(fromIndex, toIndex) {
-        // Vérifier que les indices sont valides
-        if (fromIndex < 0 || fromIndex >= GAME_CONFIG.GRID.TOTAL_TILES ||
-            toIndex < 0 || toIndex >= GAME_CONFIG.GRID.TOTAL_TILES) {
-            return false;
-        }
-
-        // Vérifier qu'il y a un module à déplacer
-        if (this.modules[fromIndex] === 0) {
-            return false;
-        }
-
-        // Vérifier que la destination est vide
-        if (this.modules[toIndex] !== 0) {
-            showNotification('Destination tile is occupied!', 'error');
-            return false;
-        }
-
-        // Déplacer le module
-        this.modules[toIndex] = this.modules[fromIndex];
-        this.modules[fromIndex] = 0;
-
-        this.save();
-        showNotification('Module moved!', 'success');
-        return true;
-    }
-
-    // ==========================================
     // STATION STATS
     // ==========================================
 
@@ -2635,36 +2602,22 @@ function executeRaid() {
     }
 }
 
-let swapDirection = 'plasma'; // 'plasma' or 'energy'
+const swapDirection = 'plasma'; // Only Plasma → Energy (matches mainnet)
 
-function setSwapDirection(direction) {
-    swapDirection = direction;
+function updateSwapDisplay() {
+    if (!window.gameManager) return;
 
-    // Jouer le son de swap
-    GameSounds.play('swap');
-
-    // Update button states
-    document.getElementById('swap-dir-plasma').classList.toggle('active', direction === 'plasma');
-    document.getElementById('swap-dir-energy').classList.toggle('active', direction === 'energy');
-
-    // Update labels and available amount
-    if (direction === 'plasma') {
-        document.getElementById('swap-available-label').textContent = 'Available Plasma';
-        document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(window.gameManager.plasma)}`;
-        document.getElementById('swap-available-amount').style.color = '#aa00ff';
-        document.getElementById('swap-input-label').textContent = 'Plasma Amount';
-        document.getElementById('swap-output-label').textContent = 'You will receive (×2)';
-    } else {
-        document.getElementById('swap-available-label').textContent = 'Available Energy';
-        document.getElementById('swap-available-amount').textContent = `⚡ ${GameHelpers.formatNumber(window.gameManager.energy)}`;
-        document.getElementById('swap-available-amount').style.color = '#00f0ff';
-        document.getElementById('swap-input-label').textContent = 'Energy Amount';
-        document.getElementById('swap-output-label').textContent = 'You will receive (×0.5)';
-    }
+    // Display available plasma as integer (no decimals)
+    const plasmaAmount = Math.floor(window.gameManager.plasma);
+    document.getElementById('swap-available-label').textContent = 'Available Plasma';
+    document.getElementById('swap-available-amount').textContent = `💎 ${GameHelpers.formatNumber(plasmaAmount)}`;
+    document.getElementById('swap-available-amount').style.color = '#aa00ff';
+    document.getElementById('swap-input-label').textContent = 'Plasma Amount';
+    document.getElementById('swap-output-label').textContent = 'You will receive (×2)';
 
     // Reset input
     document.getElementById('swap-amount').value = '';
-    document.getElementById('swap-output').textContent = swapDirection === 'plasma' ? '⚡ 0' : '💎 0';
+    document.getElementById('swap-output').textContent = '⚡ 0';
 }
 
 function setSwapAmount(percentage) {
@@ -2672,17 +2625,13 @@ function setSwapAmount(percentage) {
 
     GameSounds.play('click');
 
-    const totalAmount = swapDirection === 'plasma' ? window.gameManager.plasma : window.gameManager.energy;
-    const amount = Math.floor(totalAmount * percentage);
-
+    const amount = Math.floor(window.gameManager.plasma * percentage);
     const swapInput = document.getElementById('swap-amount');
     swapInput.value = amount;
 
-    // Trigger l'update de l'output
-    const rate = swapDirection === 'plasma' ? GAME_CONFIG.SWAP.PLASMA_TO_ENERGY_RATE : GAME_CONFIG.SWAP.ENERGY_TO_PLASMA_RATE;
-    const output = Math.floor(amount * rate);
-    const outputIcon = swapDirection === 'plasma' ? '⚡' : '💎';
-    document.getElementById('swap-output').textContent = `${outputIcon} ${GameHelpers.formatNumber(output)}`;
+    // Calculate output (Plasma → Energy at ×2 rate)
+    const output = Math.floor(amount * GAME_CONFIG.SWAP.PLASMA_TO_ENERGY_RATE);
+    document.getElementById('swap-output').textContent = `⚡ ${GameHelpers.formatNumber(output)}`;
 }
 
 function executeSwap() {
@@ -2690,27 +2639,11 @@ function executeSwap() {
 
     const amount = parseInt(document.getElementById('swap-amount').value) || 0;
 
-    if (swapDirection === 'plasma') {
-        if (window.gameManager.swapPlasmaToEnergy(amount)) {
-            document.getElementById('swap-amount').value = '';
-            document.getElementById('swap-output').textContent = '⚡ 0';
-            closeModal('swap-modal');
-        }
-    } else {
-        // Energy → Plasma
-        const plasmaGained = Math.floor(amount * GAME_CONFIG.SWAP.ENERGY_TO_PLASMA_RATE);
-        if (amount > 0 && window.gameManager.energy >= amount) {
-            window.gameManager.energy -= amount;
-            window.gameManager.plasma += plasmaGained;
-            window.gameManager.save();
-            window.gameManager.updateUI();
-            showNotification(`Swapped ${GameHelpers.formatNumber(amount)} energy for ${GameHelpers.formatNumber(plasmaGained)} plasma!`, 'success');
-            document.getElementById('swap-amount').value = '';
-            document.getElementById('swap-output').textContent = '💎 0';
-            closeModal('swap-modal');
-        } else {
-            showNotification('Not enough energy!', 'error');
-        }
+    // Only Plasma → Energy (matches mainnet)
+    if (window.gameManager.swapPlasmaToEnergy(amount)) {
+        document.getElementById('swap-amount').value = '';
+        document.getElementById('swap-output').textContent = '⚡ 0';
+        closeModal('swap-modal');
     }
 }
 
@@ -2861,23 +2794,6 @@ function openUpgradeModal(tileIndex) {
     }
 
     openModal('upgrade-modal');
-}
-
-function startMoveMode() {
-    if (!window.gameManager) return;
-
-    GameSounds.play('click');
-
-    const tileIndex = window.gameManager.selectedTileIndex;
-    if (tileIndex === null) return;
-
-    closeModal('upgrade-modal');
-
-    // Mode déplacement activé
-    window.gameManager.isMovingModule = true;
-    window.gameManager.movingFromIndex = tileIndex;
-
-    showNotification('Click on an empty tile to move the planet', 'info');
 }
 
 // ==========================================
@@ -3416,17 +3332,8 @@ class GameScene extends Phaser.Scene {
             // Si on n'a PAS dragué...
             if (!wasDragging && this.hoveredTile !== null) {
                 console.log('[DEBUG POINTERUP] Not dragging, hoveredTile valid');
-                // MODE DÉPLACEMENT = Déplacer le module
-                if (window.gameManager.isMovingModule) {
-                    console.log('[DEBUG POINTERUP] MOVE mode');
-                    if (window.gameManager.moveModule(window.gameManager.movingFromIndex, this.hoveredTile)) {
-                        this.rebuildAllModules();
-                    }
-                    window.gameManager.isMovingModule = false;
-                    window.gameManager.movingFromIndex = null;
-                }
                 // MODE PLACEMENT = Placer le module
-                else if (window.gameManager.isPlacingModule) {
+                if (window.gameManager.isPlacingModule) {
                     console.log('[DEBUG POINTERUP] PLACEMENT mode - calling tryPlaceModule');
                     this.tryPlaceModule(this.hoveredTile);
                 }
@@ -3464,14 +3371,10 @@ class GameScene extends Phaser.Scene {
         const tileSize = GAME_CONFIG.GRID.TILE_SIZE;
         const isEmpty = window.gameManager.modules[tileIndex] === 0;
         const isPlacing = window.gameManager.isPlacingModule;
-        const isMoving = window.gameManager.isMovingModule;
 
         let color = GAME_CONFIG.VISUALS.GRID_HOVER_COLOR;
         if (isPlacing) {
             color = isEmpty ? GAME_CONFIG.VISUALS.GRID_VALID_COLOR : GAME_CONFIG.VISUALS.GRID_INVALID_COLOR;
-        } else if (isMoving) {
-            // Mode déplacement: violet si vide, rouge si occupé
-            color = isEmpty ? 0xaa00ff : GAME_CONFIG.VISUALS.GRID_INVALID_COLOR;
         }
 
         tile.clear();
