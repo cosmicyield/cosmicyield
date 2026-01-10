@@ -3167,14 +3167,16 @@ function updateUpgradeDisplay() {
     const maxUpgrades = GAME_CONFIG.UPGRADE.MAX_LEVEL; // 9
     const planetId = data.level; // 1-8 (Planet type ID)
     const module = data.module; // { name, cost, perHour }
+    const upgradeCost = GameHelpers.getUpgradeCost(planetId);
+    const upgradeBoost = GameHelpers.getUpgradePerHour(planetId);
 
     // Calculate TRUE building level (1-10, where 1 = no upgrades, 10 = max upgrades)
     const currentBuildingLevel = 1 + currentUpgrades;
     const nextBuildingLevel = currentBuildingLevel + 1;
 
-    // Display current level with upgrade count and planet name
+    // Display current level with planet name
     document.getElementById('upgrade-current-level').textContent =
-        `${module.name} - Level ${currentBuildingLevel} (${currentUpgrades} upgrade${currentUpgrades !== 1 ? 's' : ''})`;
+        `${module.name} - Level ${currentBuildingLevel}`;
 
     // Check if at max upgrades
     if (currentUpgrades >= maxUpgrades) {
@@ -3187,11 +3189,7 @@ function updateUpgradeDisplay() {
 
     // Display next level
     document.getElementById('upgrade-next-level').textContent =
-        `Next: Level ${nextBuildingLevel} (${currentUpgrades + 1} upgrade${currentUpgrades + 1 !== 1 ? 's' : ''})`;
-
-    // Calculate single upgrade cost/boost (based on planet ID, not building level)
-    const upgradeCost = GameHelpers.getUpgradeCost(planetId);
-    const upgradeBoost = GameHelpers.getUpgradePerHour(planetId);
+        `Next: Level ${nextBuildingLevel}`;
 
     document.getElementById('upgrade-cost').textContent = `⚡ ${GameHelpers.formatNumber(upgradeCost)}`;
     document.getElementById('upgrade-boost').textContent = `+${upgradeBoost}/hr`;
