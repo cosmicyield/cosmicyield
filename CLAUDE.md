@@ -284,19 +284,41 @@
     - `0c52676`: Simplify Swap modal - Plasma to Energy only
     - `6b00d0d`: Fix modal scrollbars and button overflow in Buy/Sell
 
-- **Session 6.3 Mobile Detection (Jan 10, 2026 - In Progress):**
-  1. **Implementing mobile device detection warning** 📱
-     - Goal: Detect mobile/tablet devices and show overlay recommending desktop
-     - Detection strategy: User Agent check + screen width check (≤768px)
-     - NOT adapting game for mobile (UI too complex for mobile - 360 tiles + modals)
-     - Overlay blocks game initialization if mobile detected
-     - Will be added to both cosmic-yield-topdown.html and cosmic-yield-mainnet.html
+- **Session 6.3 Mobile Detection (Jan 10, 2026 - COMPLETED):**
+  1. **Implemented mobile device detection warning** 📱
+     - Detects mobile/tablet devices via User Agent check AND screen width (≤768px)
+     - Shows prominent overlay recommending users play on desktop
+     - Blocks Phaser game initialization on mobile to prevent resource waste
+     - Hides loading screen when warning is displayed
+     - NOT adapting UI for mobile (UI too complex - 360 tiles + 8 modals + precise controls)
 
-  - **Implementation details:**
-    - HTML: Modal overlay with message recommending desktop (z-index: 1500)
-    - CSS: Gradient background, fadeInScale animation, centered modal
-    - JS: Detects via regex and screen width, nullifies Phaser on mobile
-    - Tests: iOS, Android, tablet detection
+  2. **Detection mechanism:**
+     - User Agent regex: `/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i`
+     - Screen width breakpoint: `<= 768px` (matches CSS media queries)
+     - Uses OR logic: If either condition is true → show warning
+
+  3. **Visual implementation:**
+     - Fixed overlay: z-index 1500 (highest priority)
+     - Gradient background: Black + purple (matches game aesthetic)
+     - Backdrop filter: 10px blur effect
+     - Modal: 500px max width, 90% responsive, rounded corners
+     - Animation: Smooth fadeInScale (0.4s ease-out)
+     - Message: Clear explanation why mobile experience isn't optimal
+
+  4. **Technical execution:**
+     - IIFE pattern to avoid global scope pollution
+     - Nullifies `window.Phaser` to prevent initialization
+     - Adds 'hidden' class to loading screen
+     - Console logs for debugging: "[Mobile Detection]" prefix
+     - Applied to BOTH cosmic-yield-topdown.html AND cosmic-yield-mainnet.html
+
+  - **Files modified:**
+    - cosmic-yield-topdown.html: HTML (line 1199), CSS (line 1154), JS (line 2526)
+    - cosmic-yield-mainnet.html: HTML (line 1443), CSS (line 1398), JS (line 2991)
+
+  - **Commit:**
+    - `aaf4d19`: Feat: Add mobile device detection warning overlay
+    - Pushed to testnet branch (auto-deploy to Render)
 
 - **Active Blockers:** None - All critical systems working! ✅
 
