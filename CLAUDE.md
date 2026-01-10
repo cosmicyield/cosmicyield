@@ -3,9 +3,9 @@
 > **Note for Claude:** Always check the `## 🔄 Session Hand-off` section first to see where the last session left off.
 
 ## 🔄 Session Hand-off (Context for /clear)
-- **Current Goal:** ✅ COMPLETE - Referral system fully polished (January 10, 2026 - Session 6.1)
-- **Last Significant Change:** Renamed "Sponsor" → "Referrer", added interactive recruits modal popup (Coming Soon UI)
-- **Next Session Goal:** (User to define - referral system 100% complete)
+- **Current Goal:** ✅ COMPLETE - Fixed planet display values + building level calculations (January 10, 2026 - Session 6.2)
+- **Last Significant Change:** Corrected building level display (1-10 scale instead of planet ID), simplified upgrade modal text, added immediate re-sync after transactions
+- **Next Session Goal:** (User to define)
 - **User Preference:** MUST USE HAIKU for sessions (user explicitly requested)
 - **Technical Context:**
   - All core features implemented, tested, and WORKING on testnet
@@ -225,7 +225,36 @@
     - Ready for The Graph integration for full recruits list
   - 1 commit: `7b7f55b`: Rename Sponsor to Referrer and add recruits modal popup
 
-- **Active Blockers:** None - Referral system complete and fully functional! ✅
+- **Session 6.2 Planet Display Fix (Jan 10, 2026):**
+  1. **Fixed building level display** (Critical bug fix)
+     - Building Level now correctly calculated as: **1 + upgrades** (range 1-10)
+     - Before: "Current: Level 8 (5 upgrades)" for Neptune (8 = planet ID, WRONG!)
+     - After: "Neptune - Level 6" for Neptune with 5 upgrades (6 = true building level)
+     - Upgrade costs/boosts still correctly based on planet ID (unchanged)
+
+  2. **Simplified upgrade modal text**
+     - Removed upgrade count from display (cleaner UI)
+     - Current shows only: planet name + building level
+     - Next shows only: building level
+     - Upgrade cost and boost are still calculated correctly
+
+  3. **Re-sync blockchain after transactions** (Already done in Session 6.1)
+     - Immediate re-sync via `loadPlanetData()` after TX confirmation
+     - Ensures values always match blockchain state
+     - Console logs tile decoding for verification
+
+  - **Commits:**
+    - `20c164c`: Fix: Improve planet data re-sync and add debug logging
+    - `e481600`: Fix: Correct building level display (1-10 scale instead of planet ID)
+    - `1d120b8`: Clean: Simplify upgrade modal display text
+
+  - **Tests Status:**
+    - ✅ upgradeBuilding() transaction on testnet - ALL OK
+    - ✅ swapPlasmaToEnergy() transaction on testnet - ALL OK
+    - ✅ battle() function on testnet - ALL OK
+    - ✅ cross-account interactions (manager fee distribution) - ALL OK
+
+- **Active Blockers:** None - All critical systems working! ✅
 
 ---
 
@@ -647,8 +676,8 @@ if (savedMusicState === null || savedMusicState === 'true') {
 
 ---
 
-**Last Updated**: January 6, 2026
-**Claude Code Version**: Generated with Claude Sonnet 4.5
+**Last Updated**: January 10, 2026 (Session 6.2)
+**Claude Code Version**: Generated with Claude Haiku 4.5
 
 ## Notes for Future Claude Instances
 
@@ -683,10 +712,10 @@ if (savedMusicState === null || savedMusicState === 'true') {
   - Location: Search for move/drag functionality in topdown demo
 
 ### Medium Priority (Post-Launch)
-- [x] Test `upgradeBuilding()` transaction on testnet (IMPLEMENTATION COMPLETE - Ready for testing!)
-- [ ] Test `swapPlasmaToEnergy()` transaction on testnet
-- [ ] Test `battle()` function on testnet
-- [ ] Test cross-account interactions (manager fee distribution)
+- [x] Test `upgradeBuilding()` transaction on testnet (✅ TESTED - ALL OK!)
+- [x] Test `swapPlasmaToEnergy()` transaction on testnet (✅ TESTED - ALL OK!)
+- [x] Test `battle()` function on testnet (✅ TESTED - ALL OK!)
+- [x] Test cross-account interactions (manager fee distribution) (✅ TESTED - ALL OK!)
 - [ ] Full security audit before mainnet deployment
 - [ ] Gas optimization review
 
@@ -695,23 +724,8 @@ if (savedMusicState === null || savedMusicState === 'true') {
   - Options: The Graph subgraph (recommended) OR custom backend with database
   - Display count in both index.html and mainnet.html TVL banners
   - Currently shows "?" placeholder in both locations
-  - Would need to parse blockchain events from contract deployment to present
-  - Alternative: Count unique addresses from EnergyBought event logs
 
 ### Low Priority (Nice to Have)
-- [ ] **Add Energy → Plasma swap to practice mode (cosmic-yield-topdown.html)**
-  - Currently only Plasma → Energy exists in both demo and mainnet
-  - Demo mode could allow bidirectional swap for learning purposes
-  - Ratio: Energy → Plasma (×0.5) - 1000 energy = 500 plasma
-  - NOT available on mainnet (no smart contract function)
-  - Reason: Smart contract prevents Energy → Plasma to avoid exploitation cycle (Buy Energy → Swap to Plasma → Sell Plasma for USDT)
-  - Location: Search for swap functionality in topdown demo
-- [ ] Add `moveBuilding()` function to smart contract (if user requests it)
-  - Would require new contract deployment
-  - Function signature: `moveBuilding(uint16 _fromTileId, uint16 _toTileId)`
-  - Consider energy cost for moving
-- [ ] Add building removal/destruction feature
-- [ ] Implement batch operations for placing multiple building types at once
 - [ ] Add transaction history view in UI
 
 ### Completed ✅
