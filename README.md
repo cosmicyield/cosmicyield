@@ -210,9 +210,6 @@ python -m http.server 8000
 - ✅ Referral rewards program
 - ⏳ Active player tracking (requires The Graph)
 - ⏳ Leaderboards and achievements
-- ⏳ Community governance
-- ⏳ Additional game modes
-- ⏳ Mobile app
 
 ## 🔐 Security
 
