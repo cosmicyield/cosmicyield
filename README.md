@@ -24,21 +24,21 @@
 
 ### Practice Mode (Free)
 Try the full game mechanics without spending real money:
-- **Live Demo**: [cosmic-yield-topdown.html](https://cosmicyield.onrender.com/cosmic-yield-topdown.html)
+- **Live Demo**: [cosmic-yield-topdown.html](https://cosmic-yield.onrender.com/cosmic-yield-topdown.html)
 - No wallet required
 - All features unlocked
 - Perfect for learning strategies
 
 ### On-Chain Mode (Testnet)
 Play with real blockchain transactions on BSC Testnet:
-- **Testnet Game**: [cosmic-yield-mainnet.html](https://cosmicyield.onrender.com/cosmic-yield-mainnet.html)
+- **Testnet Game**: [cosmic-yield-mainnet.html](https://cosmic-yield.onrender.com/cosmic-yield-mainnet.html)
 - Connect MetaMask or Rabby wallet
 - Get free test USDT from the faucet button
 - Experience full on-chain gameplay
 
 ### Documentation
-- **Full Docs**: [cosmic-yield-docs.html](https://cosmicyield.onrender.com/cosmic-yield-docs.html)
-- **Website**: [index.html](https://cosmicyield.onrender.com/)
+- **Full Docs**: [cosmic-yield-docs.html](https://cosmic-yield.onrender.com/cosmic-yield-docs.html)
+- **Website**: [index.html](https://cosmic-yield.onrender.com/)
 
 ## 🛠️ Tech Stack
 
@@ -265,9 +265,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- **Website**: https://cosmicyield.onrender.com/
-- **Testnet Game**: https://cosmicyield.onrender.com/cosmic-yield-mainnet.html
-- **Documentation**: https://cosmicyield.onrender.com/cosmic-yield-docs.html
+- **Website**: https://cosmic-yield.onrender.com/
+- **Testnet Game**: https://cosmic-yield.onrender.com/cosmic-yield-mainnet.html
+- **Documentation**: https://cosmic-yield.onrender.com/cosmic-yield-docs.html
 - **GitHub**: https://github.com/cosmicyield/cosmicyield
 - **BSCScan (Testnet)**: https://testnet.bscscan.com/address/0xdd6E4cb8F9262812e4Bad57d7B7E11c53CaE53d6
 
